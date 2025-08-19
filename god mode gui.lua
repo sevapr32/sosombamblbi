@@ -1,5 +1,5 @@
 -- Delta X Admin Panel (Fly Mode + Speed + Gravity + ESP)
--- Полностью рабочий скрипт с фиолетовой надписью и лаймовыми контурами
+-- Фиолетовая надпись + лаймовые контуры + улучшенное управление
 
 local function DeltaXAdmin()
     -- Проверка на повторный запуск
@@ -78,7 +78,7 @@ local function DeltaXAdmin()
         button.Text = text
         button.TextColor3 = Color3.new(1, 1, 1)
         button.BackgroundColor3 = color
-        button.BorderColor3 = LIME_COLOR
+        button.BorderColor3 = LIME_COLOR  -- Лаймовый контур
         button.BorderSizePixel = 2
         button.Font = Enum.Font.Gotham
         button.TextSize = 12
@@ -118,7 +118,7 @@ local function DeltaXAdmin()
         local label = Instance.new("TextLabel")
         label.Name = "Label"
         label.Text = text
-        label.TextColor3 = LIME_COLOR
+        label.TextColor3 = LIME_COLOR  -- Лаймовый текст
         label.BackgroundTransparency = 1
         label.Font = Enum.Font.Gotham
         label.TextSize = 11
@@ -134,7 +134,7 @@ local function DeltaXAdmin()
         inputBox.Text = tostring(defaultValue)
         inputBox.TextColor3 = Color3.new(1, 1, 1)
         inputBox.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        inputBox.BorderColor3 = LIME_COLOR
+        inputBox.BorderColor3 = LIME_COLOR  -- Лаймовый контур
         inputBox.BorderSizePixel = 2
         inputBox.Font = Enum.Font.Gotham
         inputBox.TextSize = 11
@@ -225,7 +225,7 @@ local function DeltaXAdmin()
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     mainFrame.Size = UDim2.new(0, 350, 0, 310)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    mainFrame.BorderColor3 = LIME_COLOR
+    mainFrame.BorderColor3 = LIME_COLOR  -- Лаймовый контур
     mainFrame.BorderSizePixel = 2
     mainFrame.BackgroundTransparency = 0.1
 
@@ -233,16 +233,19 @@ local function DeltaXAdmin()
     titleBar.Name = "TitleBar"
     titleBar.Size = UDim2.new(1, 0, 0, 30)
     titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    titleBar.BorderColor3 = LIME_COLOR
+    titleBar.BorderColor3 = LIME_COLOR  -- Лаймовый контур
     titleBar.BorderSizePixel = 2
+
+    -- Делаем titleBar активной для перемещения на всех устройствах
     titleBar.Active = true
+    titleBar.Selectable = true
 
     local title = Instance.new("TextLabel")
     title.Name = "Title"
     title.Size = UDim2.new(1, -60, 1, 0)
     title.Position = UDim2.new(0, 10, 0, 0)
-    title.Text = "DELTA X ADMIN"
-    title.TextColor3 = LIME_COLOR
+    title.Text = "SOJ-GUI"  -- ИЗМЕНЕНО НА SOJ-GUI
+    title.TextColor3 = LIME_COLOR  -- Лаймовый текст
     title.BackgroundTransparency = 1
     title.Font = Enum.Font.GothamBold
     title.TextSize = 14
@@ -261,7 +264,7 @@ local function DeltaXAdmin()
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.ScrollBarThickness = 5
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 380)
-    scrollFrame.ScrollBarImageColor3 = LIME_COLOR
+    scrollFrame.ScrollBarImageColor3 = LIME_COLOR  -- Лаймовый скроллбар
 
     local buttonsLayout = Instance.new("UIListLayout")
     buttonsLayout.Name = "ButtonsLayout"
@@ -314,17 +317,19 @@ local function DeltaXAdmin()
     local bodyVelocity, bodyGyro
     local flyConnection
     local espConnection
+    local isMobile = UserInputService.TouchEnabled
     local originalGravity = Workspace.Gravity
 
     -- Сохраняем оригинальные значения
     local originalWalkSpeed = 16
     local originalJumpPower = 50
 
-    -- Система перемещения окна
+    -- Улучшенная система перемещения окна для ПК и телефона
     local dragging = false
     local dragStart = Vector2.new()
     local startPosition = UDim2.new()
 
+    -- Функция для начала перемещения
     local function StartDrag(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -333,6 +338,7 @@ local function DeltaXAdmin()
         end
     end
 
+    -- Функция для обновления позиции при перемещения
     local function UpdateDrag(input)
         if dragging then
             local delta = input.Position - dragStart
@@ -345,13 +351,14 @@ local function DeltaXAdmin()
         end
     end
 
+    -- Функция для завершения перемещения
     local function StopDrag(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
             dragging = false
         end
     end
 
-    -- Подключаем обработчики для перемещения
+    -- Подключаем обработчики для перемещения (работает на всех устройствах)
     titleBar.InputBegan:Connect(StartDrag)
     title.InputBegan:Connect(StartDrag)
 
@@ -363,7 +370,7 @@ local function DeltaXAdmin()
 
     UserInputService.InputEnded:Connect(StopDrag)
 
-    -- Создаем ESP GUI
+    -- Создаем ESP GUI с лаймовыми контурами
     local espGui = Instance.new("ScreenGui")
     espGui.Name = "ESP_Boxes"
     espGui.ResetOnSpawn = false
@@ -376,7 +383,7 @@ local function DeltaXAdmin()
     local espNames = {}
     local espTracers = {}
 
-    -- Функция создания ESP box
+    -- Функция создания ESP box с лаймовыми контурами
     local function CreateESPBox(player)
         if player == Players.LocalPlayer then return end
         
@@ -384,7 +391,7 @@ local function DeltaXAdmin()
         box.Name = player.Name .. "_ESP"
         box.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         box.BackgroundTransparency = 0.9
-        box.BorderColor3 = LIME_COLOR
+        box.BorderColor3 = LIME_COLOR  -- Лаймовый контур ESP
         box.BorderSizePixel = 2
         box.Size = UDim2.new(0, 50, 0, 80)
         box.Visible = false
@@ -393,7 +400,7 @@ local function DeltaXAdmin()
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Name = "NameLabel"
         nameLabel.Text = player.Name
-        nameLabel.TextColor3 = LIME_COLOR
+        nameLabel.TextColor3 = LIME_COLOR  -- Лаймовый текст
         nameLabel.BackgroundTransparency = 1
         nameLabel.Size = UDim2.new(1, 0, 0, 15)
         nameLabel.Position = UDim2.new(0, 0, 0, -15)
@@ -403,7 +410,7 @@ local function DeltaXAdmin()
         
         local tracer = Instance.new("Frame")
         tracer.Name = player.Name .. "_Tracer"
-        tracer.BackgroundColor3 = LIME_COLOR
+        tracer.BackgroundColor3 = LIME_COLOR  -- Лаймовый трейсер
         tracer.BackgroundTransparency = 0.7
         tracer.BorderSizePixel = 0
         tracer.Size = UDim2.new(0, 1, 0, 100)
@@ -427,7 +434,7 @@ local function DeltaXAdmin()
                     
                     if onScreen then
                         local distance = (humanoidRootPart.Position - Workspace.CurrentCamera.CFrame.Position).Magnitude
-                        local scale = math.clamp(1000 / distance, 0.5, 2)
+                        local scale = 1000 / distance
                         
                         box.Size = UDim2.new(0, 20 * scale, 0, 40 * scale)
                         box.Position = UDim2.new(0, position.X - box.Size.X.Offset / 2, 0, position.Y - box.Size.Y.Offset / 2)
@@ -439,7 +446,7 @@ local function DeltaXAdmin()
                         
                         if footPosition.Z > 0 then
                             local angle = math.atan2(footPosition.Y - screenCenter.Y, footPosition.X - screenCenter.X)
-                            local length = math.clamp((footPosition - screenCenter).Magnitude, 50, 200)
+                            local length = 100
                             
                             espTracers[player].Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
                             espTracers[player].Size = UDim2.new(0, length, 0, 2)
@@ -488,6 +495,7 @@ local function DeltaXAdmin()
                 end
             end
             espBoxes = {}
+            espNames = {}
             
             for _, tracer in pairs(espTracers) do
                 if tracer then
@@ -514,9 +522,9 @@ local function DeltaXAdmin()
             espTracers[player]:Destroy()
             espTracers[player] = nil
         end
-    end)
+    end
 
-    -- Создаем элементы управления для полета
+    -- Создаем элементы управления для полета (универсальные для ПК и телефона)
     local flyControls = Instance.new("ScreenGui")
     flyControls.Name = "FlyControls"
     flyControls.ResetOnSpawn = false
@@ -529,7 +537,7 @@ local function DeltaXAdmin()
     joyStick.Position = UDim2.new(0, 30, 1, -160)
     joyStick.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     joyStick.BackgroundTransparency = 0.8
-    joyStick.BorderColor3 = LIME_COLOR
+    joyStick.BorderColor3 = LIME_COLOR  -- Лаймовый контур
     joyStick.BorderSizePixel = 2
     joyStick.Parent = flyControls
 
@@ -537,7 +545,7 @@ local function DeltaXAdmin()
     joyStickKnob.Name = "JoyStickKnob"
     joyStickKnob.Size = UDim2.new(0, 40, 0, 40)
     joyStickKnob.Position = UDim2.new(0.5, -20, 0.5, -20)
-    joyStickKnob.BackgroundColor3 = LIME_COLOR
+    joyStickKnob.BackgroundColor3 = LIME_COLOR  -- Лаймовый джойстик
     joyStickKnob.BackgroundTransparency = 0.6
     joyStickKnob.BorderSizePixel = 0
     joyStickKnob.Parent = joyStick
@@ -557,7 +565,7 @@ local function DeltaXAdmin()
     local pcControls = Instance.new("TextLabel")
     pcControls.Name = "PCControls"
     pcControls.Text = "PC: WASD + Space/Shift"
-    pcControls.TextColor3 = LIME_COLOR
+    pcControls.TextColor3 = LIME_COLOR  -- Лаймовый текст
     pcControls.BackgroundTransparency = 1
     pcControls.Font = Enum.Font.Gotham
     pcControls.TextSize = 12
@@ -574,7 +582,7 @@ local function DeltaXAdmin()
     local upPressed = false
     local downPressed = false
 
-    -- Обработка мобильного управления
+    -- Обработка мобильного управления полетом
     joyStick.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             joyStickActive = true
@@ -602,6 +610,7 @@ local function DeltaXAdmin()
         end
     end)
     
+    -- Кнопки высоты для мобильных
     upButton.MouseButton1Down:Connect(function()
         upPressed = true
     end)
@@ -660,7 +669,7 @@ local function DeltaXAdmin()
         ApplyStats()
     end
 
-    -- Fly Mode логика
+    -- Fly Mode логика (универсальная для ПК и телефона)
     local function StartFlying()
         if not player.Character then return end
         
@@ -697,7 +706,7 @@ local function DeltaXAdmin()
             local direction = Vector3.new()
             local currentFlySpeed = getFlySpeed()
             
-            -- Универсальное управление
+            -- Универсальное управление для ПК и телефона
             if UserInputService.TouchEnabled then
                 -- Мобильное управление
                 if joyStickActive then
@@ -823,26 +832,4 @@ local function DeltaXAdmin()
 
     -- Применяем настройки при появлении персонажа
     player.CharacterAdded:Connect(function(character)
-        character:WaitForChild("Humanoid")
-        ApplyStats()
-    end)
-
-    -- Автоматическое применение настроек при изменении значений
-    flySpeedSlider.Changed:Connect(onStatChange)
-    walkSpeedSlider.Changed:Connect(onStatChange)
-    jumpPowerSlider.Changed:Connect(onStatChange)
-    gravitySlider.Changed:Connect(onStatChange)
-
-    -- Первоначальное обновление UI
-    UpdateUI()
-    ApplyStats()
-
-    print("Delta X Admin Panel успешно загружен!")
-    print("MADE BY SOJO - Фиолетовая надпись")
-    print("Лаймовые контуры - все элементы GUI")
-    print("Управление полетом: ПК - WASD + Space/Shift, Телефон - Джойстик")
-    print("Перемещение GUI: Зажмите верхнюю панель")
-end
-
--- Запускаем скрипт
-DeltaXAdmin()
+        character:WaitFor
