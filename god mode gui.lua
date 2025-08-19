@@ -1,5 +1,5 @@
 -- Delta X Admin Panel (God Mode + Fly Mode)
--- Полностью автономный скрипт с автоматическим созданием GUI
+-- Полностью автономный скрипт с мобильной поддержкой
 
 local function DeltaXAdmin()
     -- Проверка на повторный запуск
@@ -17,6 +17,7 @@ local function DeltaXAdmin()
     local UserInputService = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
     local TweenService = game:GetService("TweenService")
+    local GuiService = game:GetService("GuiService")
 
     -- Получаем локального игрока
     local player = Players.LocalPlayer
@@ -26,6 +27,8 @@ local function DeltaXAdmin()
     -- Удаляем старое GUI если есть
     local existingGui = playerGui:FindFirstChild("DeltaXAdminGUI")
     if existingGui then existingGui:Destroy() end
+    local existingToggle = playerGui:FindFirstChild("ShowGUIButton")
+    if existingToggle then existingToggle:Destroy() end
 
     -- Создаем заставку
     local splashScreen = Instance.new("ScreenGui")
@@ -101,6 +104,21 @@ local function DeltaXAdmin()
     
     wait(0.5)
     splashScreen:Destroy()
+
+    -- Создаем кнопку для показа GUI (изначально скрыта)
+    local showGuiButton = Instance.new("ScreenGui")
+    showGuiButton.Name = "ShowGUIButton"
+    showGuiButton.ResetOnSpawn = false
+    showGuiButton.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    showGuiButton.Enabled = false
+
+    local showButton = CreateButton(showGuiButton, "ShowButton", 
+        UDim2.new(0, 20, 0, 20), 
+        UDim2.new(0, 100, 0, 40), 
+        "SHOW GUI", 
+        Color3.fromRGB(70, 70, 80))
+
+    showGuiButton.Parent = playerGui
 
     -- Создаем основной GUI
     local screenGui = Instance.new("ScreenGui")
@@ -186,6 +204,9 @@ local function DeltaXAdmin()
     local flyEnabled = false
     local guiVisible = true
     local bodyVelocity, bodyGyro
+    local flyConnection
+    local touchControls = {}
+    local isMobile = UserInputService.TouchEnabled
 
     -- Функция обновления интерфейса
     local function UpdateUI()
@@ -196,6 +217,116 @@ local function DeltaXAdmin()
         flyButton.BackgroundColor3 = flyEnabled and Color3.fromRGB(90, 90, 180) or Color3.fromRGB(80, 80, 90)
         
         toggleGuiButton.Text = guiVisible and "HIDE GUI" or "SHOW GUI"
+    end
+
+    -- Создаем мобильные элементы управления для полета
+    local function CreateMobileControls()
+        if not isMobile then return end
+        
+        -- Удаляем старые элементы
+        for _, control in pairs(touchControls) do
+            if control then control:Destroy() end
+        end
+        touchControls = {}
+        
+        -- Создаем джойстик для движения
+        local touchGui = Instance.new("ScreenGui")
+        touchGui.Name = "FlyTouchControls"
+        touchGui.ResetOnSpawn = false
+        touchGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        touchGui.Enabled = false
+        
+        local joyStick = Instance.new("Frame")
+        joyStick.Name = "JoyStick"
+        joyStick.Size = UDim2.new(0, 100, 0, 100)
+        joyStick.Position = UDim2.new(0, 50, 1, -150)
+        joyStick.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        joyStick.BackgroundTransparency = 0.7
+        joyStick.BorderSizePixel = 0
+        joyStick.Parent = touchGui
+        
+        local joyStickKnob = Instance.new("Frame")
+        joyStickKnob.Name = "JoyStickKnob"
+        joyStickKnob.Size = UDim2.new(0, 30, 0, 30)
+        joyStickKnob.Position = UDim2.new(0.5, -15, 0.5, -15)
+        joyStickKnob.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        joyStickKnob.BackgroundTransparency = 0.5
+        joyStickKnob.BorderSizePixel = 0
+        joyStickKnob.Parent = joyStick
+        
+        -- Кнопки для высоты
+        local upButton = CreateButton(touchGui, "UpButton", 
+            UDim2.new(1, -120, 1, -150), 
+            UDim2.new(0, 50, 0, 50), 
+            "↑", 
+            Color3.fromRGB(80, 80, 90))
+            
+        local downButton = CreateButton(touchGui, "DownButton", 
+            UDim2.new(1, -120, 1, -90), 
+            UDim2.new(0, 50, 0, 50), 
+            "↓", 
+            Color3.fromRGB(80, 80, 90))
+        
+        touchGui.Parent = playerGui
+        touchControls = {touchGui, joyStick, joyStickKnob, upButton, downButton}
+        
+        return touchGui, joyStick, joyStickKnob, upButton, downButton
+    end
+
+    -- Переменные для мобильного управления
+    local touchGui, joyStick, joyStickKnob, upButton, downButton = CreateMobileControls()
+    local joyStickActive = false
+    local joyStickStartPos = Vector2.new()
+    local joyStickDirection = Vector2.new()
+    local upPressed = false
+    local downPressed = false
+
+    -- Обработка мобильного управления
+    if isMobile then
+        -- Джойстик
+        joyStick.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                joyStickActive = true
+                joyStickStartPos = input.Position
+            end
+        end)
+        
+        joyStick.InputChanged:Connect(function(input)
+            if joyStickActive and input.UserInputType == Enum.UserInputType.Touch then
+                local delta = input.Position - joyStickStartPos
+                local maxDistance = 35
+                local distance = math.min(delta.Magnitude, maxDistance)
+                local direction = delta.Unit
+                
+                joyStickDirection = direction * (distance / maxDistance)
+                joyStickKnob.Position = UDim2.new(0.5, -15 + direction.X * distance, 0.5, -15 + direction.Y * distance)
+            end
+        end)
+        
+        joyStick.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                joyStickActive = false
+                joyStickDirection = Vector2.new()
+                joyStickKnob.Position = UDim2.new(0.5, -15, 0.5, -15)
+            end
+        end)
+        
+        -- Кнопки высоты
+        upButton.MouseButton1Down:Connect(function()
+            upPressed = true
+        end)
+        
+        upButton.MouseButton1Up:Connect(function()
+            upPressed = false
+        end)
+        
+        downButton.MouseButton1Down:Connect(function()
+            downPressed = true
+        end)
+        
+        downButton.MouseButton1Up:Connect(function()
+            downPressed = false
+        end)
     end
 
     -- God Mode логика
@@ -216,6 +347,11 @@ local function DeltaXAdmin()
         local root = player.Character:FindFirstChild("HumanoidRootPart") or player.Character.PrimaryPart
         if not root then return end
         
+        -- Включаем мобильное управление
+        if isMobile and touchGui then
+            touchGui.Enabled = true
+        end
+        
         bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
@@ -228,7 +364,7 @@ local function DeltaXAdmin()
         bodyGyro.CFrame = root.CFrame
         bodyGyro.Parent = root
         
-        RunService.Heartbeat:Connect(function()
+        flyConnection = RunService.Heartbeat:Connect(function()
             if not flyEnabled or not player.Character or not bodyVelocity or not bodyGyro then
                 return
             end
@@ -238,24 +374,40 @@ local function DeltaXAdmin()
             
             local cam = workspace.CurrentCamera
             local direction = Vector3.new()
+            local flySpeed = 50
             
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                direction = direction + (cam.CFrame.LookVector * 50)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                direction = direction - (cam.CFrame.LookVector * 50)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                direction = direction - (cam.CFrame.RightVector * 50)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                direction = direction + (cam.CFrame.RightVector * 50)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                direction = direction + Vector3.new(0, 50, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                direction = direction - Vector3.new(0, 50, 0)
+            if isMobile then
+                -- Мобильное управление
+                if joyStickActive then
+                    direction = direction + (cam.CFrame.RightVector * joyStickDirection.X * flySpeed)
+                    direction = direction - (cam.CFrame.LookVector * joyStickDirection.Y * flySpeed)
+                end
+                if upPressed then
+                    direction = direction + Vector3.new(0, flySpeed, 0)
+                end
+                if downPressed then
+                    direction = direction - Vector3.new(0, flySpeed, 0)
+                end
+            else
+                -- ПК управление
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    direction = direction + (cam.CFrame.LookVector * flySpeed)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    direction = direction - (cam.CFrame.LookVector * flySpeed)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    direction = direction - (cam.CFrame.RightVector * flySpeed)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    direction = direction + (cam.CFrame.RightVector * flySpeed)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    direction = direction + Vector3.new(0, flySpeed, 0)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    direction = direction - Vector3.new(0, flySpeed, 0)
+                end
             end
             
             bodyVelocity.Velocity = direction
@@ -264,6 +416,15 @@ local function DeltaXAdmin()
     end
 
     local function StopFlying()
+        if isMobile and touchGui then
+            touchGui.Enabled = false
+        end
+        
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        
         if player.Character then
             local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
@@ -298,12 +459,23 @@ local function DeltaXAdmin()
     toggleGuiButton.MouseButton1Click:Connect(function()
         guiVisible = not guiVisible
         screenGui.Enabled = guiVisible
+        showGuiButton.Enabled = not guiVisible
+        UpdateUI()
+    end)
+
+    -- Кнопка показа GUI
+    showButton.MouseButton1Click:Connect(function()
+        screenGui.Enabled = true
+        showGuiButton.Enabled = false
+        guiVisible = true
         UpdateUI()
     end)
 
     -- Закрытие GUI
     closeButton.MouseButton1Click:Connect(function()
         screenGui:Destroy()
+        showGuiButton:Destroy()
+        if touchGui then touchGui:Destroy() end
         _G.DeltaXAdminLoaded = false
     end)
 
