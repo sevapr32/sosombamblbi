@@ -1,10 +1,10 @@
--- Delta X Admin Panel (Fly Mode + Speed + Gravity + ESP)
--- Фиолетовая надпись + лаймовые контуры + улучшенное управление
+-- SOJ-GUI Panel (Fly Mode + Speed + Gravity + ESP)
+-- Полностью рабочий скрипт
 
-local function DeltaXAdmin()
+local function SOJ_GUI()
     -- Проверка на повторный запуск
-    if _G.DeltaXAdminLoaded then return end
-    _G.DeltaXAdminLoaded = true
+    if _G.SOJGuiLoaded then return end
+    _G.SOJGuiLoaded = true
 
     -- Ожидаем загрузку игры
     if not game:IsLoaded() then
@@ -25,7 +25,7 @@ local function DeltaXAdmin()
     local playerGui = player.PlayerGui
 
     -- Удаляем старое GUI если есть
-    local existingGui = playerGui:FindFirstChild("DeltaXAdminGUI")
+    local existingGui = playerGui:FindFirstChild("SOJ_GUI")
     if existingGui then existingGui:Destroy() end
     local existingToggle = playerGui:FindFirstChild("ShowGUIButton")
     if existingToggle then existingToggle:Destroy() end
@@ -40,10 +40,10 @@ local function DeltaXAdmin()
     end
 
     -- Цвета
-    local LIME_COLOR = Color3.fromRGB(50, 255, 50)  -- Лаймовый для контуров
-    local PURPLE_COLOR = Color3.fromRGB(170, 0, 255) -- Фиолетовый для надписи
+    local LIME_COLOR = Color3.fromRGB(50, 255, 50)
+    local PURPLE_COLOR = Color3.fromRGB(170, 0, 255)
 
-    -- Создаем заставку с фиолетовой надписью
+    -- Создаем заставку
     local splashScreen = Instance.new("ScreenGui")
     splashScreen.Name = "SplashScreen"
     splashScreen.ResetOnSpawn = false
@@ -57,7 +57,7 @@ local function DeltaXAdmin()
 
     local splashText = Instance.new("TextLabel")
     splashText.Text = "MADE BY SOJO"
-    splashText.TextColor3 = PURPLE_COLOR  -- ФИОЛЕТОВАЯ надпись
+    splashText.TextColor3 = PURPLE_COLOR
     splashText.TextSize = 28
     splashText.Font = Enum.Font.GothamBold
     splashText.BackgroundTransparency = 1
@@ -69,7 +69,7 @@ local function DeltaXAdmin()
     splashText.Parent = splashFrame
     splashScreen.Parent = playerGui
 
-    -- Функция для создания кнопок с лаймовыми контурами
+    -- Функция для создания кнопок
     local function CreateButton(parent, name, position, size, text, color)
         local button = Instance.new("TextButton")
         button.Name = name
@@ -78,35 +78,32 @@ local function DeltaXAdmin()
         button.Text = text
         button.TextColor3 = Color3.new(1, 1, 1)
         button.BackgroundColor3 = color
-        button.BorderColor3 = LIME_COLOR  -- Лаймовый контур
+        button.BorderColor3 = LIME_COLOR
         button.BorderSizePixel = 2
         button.Font = Enum.Font.Gotham
         button.TextSize = 12
         button.Parent = parent
         
-        -- Анимация при наведении
         button.MouseEnter:Connect(function()
             TweenService:Create(button, TweenInfo.new(0.1), {
                 BackgroundColor3 = Color3.new(
                     math.min(color.R * 1.3, 1),
                     math.min(color.G * 1.3, 1),
                     math.min(color.B * 1.3, 1)
-                ),
-                BorderColor3 = Color3.fromRGB(100, 255, 100)
+                )
             }):Play()
         end)
         
         button.MouseLeave:Connect(function()
             TweenService:Create(button, TweenInfo.new(0.1), {
-                BackgroundColor3 = color,
-                BorderColor3 = LIME_COLOR
+                BackgroundColor3 = color
             }):Play()
         end)
         
         return button
     end
 
-    -- Функция для создания слайдеров с полем ввода
+    -- Функция для создания слайдеров
     local function CreateSliderWithInput(parent, name, position, width, text, minValue, maxValue, defaultValue)
         local sliderFrame = Instance.new("Frame")
         sliderFrame.Name = name
@@ -118,7 +115,7 @@ local function DeltaXAdmin()
         local label = Instance.new("TextLabel")
         label.Name = "Label"
         label.Text = text
-        label.TextColor3 = LIME_COLOR  -- Лаймовый текст
+        label.TextColor3 = LIME_COLOR
         label.BackgroundTransparency = 1
         label.Font = Enum.Font.Gotham
         label.TextSize = 11
@@ -126,7 +123,6 @@ local function DeltaXAdmin()
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Parent = sliderFrame
 
-        -- Поле для ввода значения
         local inputBox = Instance.new("TextBox")
         inputBox.Name = "InputBox"
         inputBox.Position = UDim2.new(0.3, 5, 0, 0)
@@ -134,7 +130,7 @@ local function DeltaXAdmin()
         inputBox.Text = tostring(defaultValue)
         inputBox.TextColor3 = Color3.new(1, 1, 1)
         inputBox.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        inputBox.BorderColor3 = LIME_COLOR  -- Лаймовый контур
+        inputBox.BorderColor3 = LIME_COLOR
         inputBox.BorderSizePixel = 2
         inputBox.Font = Enum.Font.Gotham
         inputBox.TextSize = 11
@@ -162,8 +158,7 @@ local function DeltaXAdmin()
             return currentValue
         end
 
-        -- Обработка ввода с клавиатуры
-        inputBox.FocusLost:Connect(function(enterPressed)
+        inputBox.FocusLost:Connect(function()
             local newValue = tonumber(inputBox.Text)
             if newValue then
                 updateValue(newValue)
@@ -213,9 +208,9 @@ local function DeltaXAdmin()
 
     showGuiButton.Parent = playerGui
 
-    -- Создаем основной GUI с лаймовыми контурами
+    -- Создаем основной GUI
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "DeltaXAdminGUI"
+    screenGui.Name = "SOJ_GUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -225,7 +220,7 @@ local function DeltaXAdmin()
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     mainFrame.Size = UDim2.new(0, 350, 0, 310)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    mainFrame.BorderColor3 = LIME_COLOR  -- Лаймовый контур
+    mainFrame.BorderColor3 = LIME_COLOR
     mainFrame.BorderSizePixel = 2
     mainFrame.BackgroundTransparency = 0.1
 
@@ -233,19 +228,16 @@ local function DeltaXAdmin()
     titleBar.Name = "TitleBar"
     titleBar.Size = UDim2.new(1, 0, 0, 30)
     titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    titleBar.BorderColor3 = LIME_COLOR  -- Лаймовый контур
+    titleBar.BorderColor3 = LIME_COLOR
     titleBar.BorderSizePixel = 2
-
-    -- Делаем titleBar активной для перемещения на всех устройствах
     titleBar.Active = true
-    titleBar.Selectable = true
 
     local title = Instance.new("TextLabel")
     title.Name = "Title"
     title.Size = UDim2.new(1, -60, 1, 0)
     title.Position = UDim2.new(0, 10, 0, 0)
-    title.Text = "SOJ-GUI"  -- ИЗМЕНЕНО НА SOJ-GUI
-    title.TextColor3 = LIME_COLOR  -- Лаймовый текст
+    title.Text = "SOJ-GUI"
+    title.TextColor3 = LIME_COLOR
     title.BackgroundTransparency = 1
     title.Font = Enum.Font.GothamBold
     title.TextSize = 14
@@ -264,7 +256,7 @@ local function DeltaXAdmin()
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.ScrollBarThickness = 5
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 380)
-    scrollFrame.ScrollBarImageColor3 = LIME_COLOR  -- Лаймовый скроллбар
+    scrollFrame.ScrollBarImageColor3 = LIME_COLOR
 
     local buttonsLayout = Instance.new("UIListLayout")
     buttonsLayout.Name = "ButtonsLayout"
@@ -284,7 +276,7 @@ local function DeltaXAdmin()
         "ESP: OFF", 
         Color3.fromRGB(80, 80, 90))
 
-    -- Создаем слайдеры с полями ввода
+    -- Создаем слайдеры
     local flySpeedSlider, getFlySpeed, setFlySpeed = CreateSliderWithInput(scrollFrame, "FlySpeedSlider", 
         UDim2.new(0, 0, 0, 0), 300, "Fly Speed:", 10, 200, 50)
 
@@ -324,12 +316,11 @@ local function DeltaXAdmin()
     local originalWalkSpeed = 16
     local originalJumpPower = 50
 
-    -- Улучшенная система перемещения окна для ПК и телефона
+    -- Система перемещения окна
     local dragging = false
     local dragStart = Vector2.new()
     local startPosition = UDim2.new()
 
-    -- Функция для начала перемещения
     local function StartDrag(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -338,7 +329,6 @@ local function DeltaXAdmin()
         end
     end
 
-    -- Функция для обновления позиции при перемещения
     local function UpdateDrag(input)
         if dragging then
             local delta = input.Position - dragStart
@@ -351,14 +341,13 @@ local function DeltaXAdmin()
         end
     end
 
-    -- Функция для завершения перемещения
     local function StopDrag(input)
-        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end
 
-    -- Подключаем обработчики для перемещения (работает на всех устройствах)
+    -- Подключаем обработчики для перемещения
     titleBar.InputBegan:Connect(StartDrag)
     title.InputBegan:Connect(StartDrag)
 
@@ -370,7 +359,7 @@ local function DeltaXAdmin()
 
     UserInputService.InputEnded:Connect(StopDrag)
 
-    -- Создаем ESP GUI с лаймовыми контурами
+    -- Создаем ESP GUI
     local espGui = Instance.new("ScreenGui")
     espGui.Name = "ESP_Boxes"
     espGui.ResetOnSpawn = false
@@ -383,7 +372,7 @@ local function DeltaXAdmin()
     local espNames = {}
     local espTracers = {}
 
-    -- Функция создания ESP box с лаймовыми контурами
+    -- Функция создания ESP box
     local function CreateESPBox(player)
         if player == Players.LocalPlayer then return end
         
@@ -391,7 +380,7 @@ local function DeltaXAdmin()
         box.Name = player.Name .. "_ESP"
         box.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         box.BackgroundTransparency = 0.9
-        box.BorderColor3 = LIME_COLOR  -- Лаймовый контур ESP
+        box.BorderColor3 = LIME_COLOR
         box.BorderSizePixel = 2
         box.Size = UDim2.new(0, 50, 0, 80)
         box.Visible = false
@@ -400,7 +389,7 @@ local function DeltaXAdmin()
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Name = "NameLabel"
         nameLabel.Text = player.Name
-        nameLabel.TextColor3 = LIME_COLOR  -- Лаймовый текст
+        nameLabel.TextColor3 = LIME_COLOR
         nameLabel.BackgroundTransparency = 1
         nameLabel.Size = UDim2.new(1, 0, 0, 15)
         nameLabel.Position = UDim2.new(0, 0, 0, -15)
@@ -410,7 +399,7 @@ local function DeltaXAdmin()
         
         local tracer = Instance.new("Frame")
         tracer.Name = player.Name .. "_Tracer"
-        tracer.BackgroundColor3 = LIME_COLOR  -- Лаймовый трейсер
+        tracer.BackgroundColor3 = LIME_COLOR
         tracer.BackgroundTransparency = 0.7
         tracer.BorderSizePixel = 0
         tracer.Size = UDim2.new(0, 1, 0, 100)
@@ -434,7 +423,7 @@ local function DeltaXAdmin()
                     
                     if onScreen then
                         local distance = (humanoidRootPart.Position - Workspace.CurrentCamera.CFrame.Position).Magnitude
-                        local scale = 1000 / distance
+                        local scale = math.clamp(1000 / distance, 0.5, 2)
                         
                         box.Size = UDim2.new(0, 20 * scale, 0, 40 * scale)
                         box.Position = UDim2.new(0, position.X - box.Size.X.Offset / 2, 0, position.Y - box.Size.Y.Offset / 2)
@@ -446,7 +435,7 @@ local function DeltaXAdmin()
                         
                         if footPosition.Z > 0 then
                             local angle = math.atan2(footPosition.Y - screenCenter.Y, footPosition.X - screenCenter.X)
-                            local length = 100
+                            local length = math.clamp((footPosition - screenCenter).Magnitude, 50, 200)
                             
                             espTracers[player].Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
                             espTracers[player].Size = UDim2.new(0, length, 0, 2)
@@ -495,7 +484,6 @@ local function DeltaXAdmin()
                 end
             end
             espBoxes = {}
-            espNames = {}
             
             for _, tracer in pairs(espTracers) do
                 if tracer then
@@ -522,9 +510,9 @@ local function DeltaXAdmin()
             espTracers[player]:Destroy()
             espTracers[player] = nil
         end
-    end
+    end)
 
-    -- Создаем элементы управления для полета (универсальные для ПК и телефона)
+    -- Создаем элементы управления для полета
     local flyControls = Instance.new("ScreenGui")
     flyControls.Name = "FlyControls"
     flyControls.ResetOnSpawn = false
@@ -537,7 +525,7 @@ local function DeltaXAdmin()
     joyStick.Position = UDim2.new(0, 30, 1, -160)
     joyStick.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     joyStick.BackgroundTransparency = 0.8
-    joyStick.BorderColor3 = LIME_COLOR  -- Лаймовый контур
+    joyStick.BorderColor3 = LIME_COLOR
     joyStick.BorderSizePixel = 2
     joyStick.Parent = flyControls
 
@@ -545,7 +533,7 @@ local function DeltaXAdmin()
     joyStickKnob.Name = "JoyStickKnob"
     joyStickKnob.Size = UDim2.new(0, 40, 0, 40)
     joyStickKnob.Position = UDim2.new(0.5, -20, 0.5, -20)
-    joyStickKnob.BackgroundColor3 = LIME_COLOR  -- Лаймовый джойстик
+    joyStickKnob.BackgroundColor3 = LIME_COLOR
     joyStickKnob.BackgroundTransparency = 0.6
     joyStickKnob.BorderSizePixel = 0
     joyStickKnob.Parent = joyStick
@@ -565,7 +553,7 @@ local function DeltaXAdmin()
     local pcControls = Instance.new("TextLabel")
     pcControls.Name = "PCControls"
     pcControls.Text = "PC: WASD + Space/Shift"
-    pcControls.TextColor3 = LIME_COLOR  -- Лаймовый текст
+    pcControls.TextColor3 = LIME_COLOR
     pcControls.BackgroundTransparency = 1
     pcControls.Font = Enum.Font.Gotham
     pcControls.TextSize = 12
@@ -582,7 +570,7 @@ local function DeltaXAdmin()
     local upPressed = false
     local downPressed = false
 
-    -- Обработка мобильного управления полетом
+    -- Обработка мобильного управления
     joyStick.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             joyStickActive = true
@@ -610,7 +598,6 @@ local function DeltaXAdmin()
         end
     end)
     
-    -- Кнопки высоты для мобильных
     upButton.MouseButton1Down:Connect(function()
         upPressed = true
     end)
@@ -637,8 +624,7 @@ local function DeltaXAdmin()
         
         toggleGuiButton.Text = guiVisible and "HIDE GUI" or "SHOW GUI"
         
-        -- Автоматическое определение устройств
-        if UserInputService.TouchEnabled then
+        if isMobile then
             joyStick.Visible = true
             upButton.Visible = true
             downButton.Visible = true
@@ -669,7 +655,7 @@ local function DeltaXAdmin()
         ApplyStats()
     end
 
-    -- Fly Mode логика (универсальная для ПК и телефона)
+    -- Fly Mode логика
     local function StartFlying()
         if not player.Character then return end
         
@@ -706,9 +692,7 @@ local function DeltaXAdmin()
             local direction = Vector3.new()
             local currentFlySpeed = getFlySpeed()
             
-            -- Универсальное управление для ПК и телефона
-            if UserInputService.TouchEnabled then
-                -- Мобильное управление
+            if isMobile then
                 if joyStickActive then
                     direction = direction + (cam.CFrame.RightVector * joyStickDirection.X * currentFlySpeed)
                     direction = direction - (cam.CFrame.LookVector * joyStickDirection.Y * currentFlySpeed)
@@ -720,7 +704,6 @@ local function DeltaXAdmin()
                     direction = direction - Vector3.new(0, currentFlySpeed, 0)
                 end
             else
-                -- ПК управление
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then
                     direction = direction + (cam.CFrame.LookVector * currentFlySpeed)
                 end
@@ -827,9 +810,31 @@ local function DeltaXAdmin()
         screenGui:Destroy()
         showGuiButton:Destroy()
         flyControls:Destroy()
-        _G.DeltaXAdminLoaded = false
+        _G.SOJGuiLoaded = false
     end)
 
     -- Применяем настройки при появлении персонажа
     player.CharacterAdded:Connect(function(character)
-        character:WaitFor
+        character:WaitForChild("Humanoid")
+        ApplyStats()
+    end)
+
+    -- Автоматическое применение настроек при изменении значений
+    spawn(function()
+        while true do
+            wait(1)
+            ApplyStats()
+        end
+    end)
+
+    -- Первоначальное обновление UI
+    UpdateUI()
+    ApplyStats()
+
+    print("SOJ-GUI успешно загружен!")
+    print("MADE BY SOJO - Фиолетовая надпись")
+    print("SOJ-GUI - Лаймовая надпись в заголовке")
+end
+
+-- Запускаем скрипт
+SOJ_GUI()
