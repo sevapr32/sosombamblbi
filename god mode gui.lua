@@ -1,4 +1,4 @@
--- Delta X Admin Panel (God Mode + Fly Mode)
+-- Delta X Admin Panel (God Mode + Fly Mode + Speed + Gravity)
 -- Полная поддержка ПК и мобильных устройств
 
 local function DeltaXAdmin()
@@ -17,6 +17,7 @@ local function DeltaXAdmin()
     local UserInputService = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
     local TweenService = game:GetService("TweenService")
+    local Workspace = game:GetService("Workspace")
 
     -- Получаем локального игрока
     local player = Players.LocalPlayer
@@ -68,7 +69,7 @@ local function DeltaXAdmin()
         button.BackgroundColor3 = color
         button.BorderSizePixel = 0
         button.Font = Enum.Font.Gotham
-        button.TextSize = 14
+        button.TextSize = 12
         button.Parent = parent
         
         -- Анимация при наведении
@@ -89,6 +90,68 @@ local function DeltaXAdmin()
         end)
         
         return button
+    end
+
+    -- Функция для создания слайдеров
+    local function CreateSlider(parent, name, position, width, text, minValue, maxValue, defaultValue)
+        local sliderFrame = Instance.new("Frame")
+        sliderFrame.Name = name
+        sliderFrame.Position = position
+        sliderFrame.Size = UDim2.new(0, width, 0, 30)
+        sliderFrame.BackgroundTransparency = 1
+        sliderFrame.Parent = parent
+
+        local label = Instance.new("TextLabel")
+        label.Name = "Label"
+        label.Text = text
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 11
+        label.Size = UDim2.new(0.4, 0, 1, 0)
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = sliderFrame
+
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Name = "ValueLabel"
+        valueLabel.Text = tostring(defaultValue)
+        valueLabel.TextColor3 = Color3.new(1, 1, 1)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Font = Enum.Font.GothamBold
+        valueLabel.TextSize = 11
+        valueLabel.Size = UDim2.new(0.2, 0, 1, 0)
+        valueLabel.Position = UDim2.new(0.4, 0, 0, 0)
+        valueLabel.Parent = sliderFrame
+
+        local minusButton = CreateButton(sliderFrame, "MinusButton", 
+            UDim2.new(0.6, 0, 0, 0), 
+            UDim2.new(0.1, 0, 1, 0), 
+            "-", 
+            Color3.fromRGB(100, 60, 60))
+
+        local plusButton = CreateButton(sliderFrame, "PlusButton", 
+            UDim2.new(0.9, 0, 0, 0), 
+            UDim2.new(0.1, 0, 1, 0), 
+            "+", 
+            Color3.fromRGB(60, 100, 60))
+
+        local currentValue = defaultValue
+
+        local function updateValue(newValue)
+            currentValue = math.clamp(newValue, minValue, maxValue)
+            valueLabel.Text = tostring(currentValue)
+            return currentValue
+        end
+
+        minusButton.MouseButton1Click:Connect(function()
+            updateValue(currentValue - 1)
+        end)
+
+        plusButton.MouseButton1Click:Connect(function()
+            updateValue(currentValue + 1)
+        end)
+
+        return sliderFrame, function() return currentValue end, updateValue
     end
 
     -- Показываем заставку
@@ -131,7 +194,7 @@ local function DeltaXAdmin()
     mainFrame.Name = "MainFrame"
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    mainFrame.Size = UDim2.new(0, 320, 0, 220)
+    mainFrame.Size = UDim2.new(0, 350, 0, 320)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     mainFrame.BorderSizePixel = 0
     mainFrame.BackgroundTransparency = 0.1
@@ -164,28 +227,48 @@ local function DeltaXAdmin()
     closeButton.Font = Enum.Font.GothamBold
     closeButton.TextSize = 14
 
-    local buttonsFrame = Instance.new("Frame")
-    buttonsFrame.Name = "ButtonsFrame"
-    buttonsFrame.Position = UDim2.new(0, 10, 0, 40)
-    buttonsFrame.Size = UDim2.new(1, -20, 1, -50)
-    buttonsFrame.BackgroundTransparency = 1
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ScrollFrame"
+    scrollFrame.Position = UDim2.new(0, 10, 0, 40)
+    scrollFrame.Size = UDim2.new(1, -20, 1, -50)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.ScrollBarThickness = 5
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
+
+    local buttonsLayout = Instance.new("UIListLayout")
+    buttonsLayout.Name = "ButtonsLayout"
+    buttonsLayout.Padding = UDim.new(0, 5)
+    buttonsLayout.Parent = scrollFrame
 
     -- Создаем кнопки управления
-    local godButton = CreateButton(buttonsFrame, "GodButton", 
+    local godButton = CreateButton(scrollFrame, "GodButton", 
         UDim2.new(0, 0, 0, 0), 
-        UDim2.new(1, 0, 0, 40), 
+        UDim2.new(1, 0, 0, 35), 
         "GOD MODE: OFF", 
         Color3.fromRGB(80, 80, 90))
 
-    local flyButton = CreateButton(buttonsFrame, "FlyButton", 
-        UDim2.new(0, 0, 0, 45), 
-        UDim2.new(1, 0, 0, 40), 
+    local flyButton = CreateButton(scrollFrame, "FlyButton", 
+        UDim2.new(0, 0, 0, 0), 
+        UDim2.new(1, 0, 0, 35), 
         "FLY MODE: OFF", 
         Color3.fromRGB(80, 80, 90))
 
-    local toggleGuiButton = CreateButton(buttonsFrame, "ToggleGuiButton", 
-        UDim2.new(0, 0, 0, 90), 
-        UDim2.new(1, 0, 0, 40), 
+    -- Создаем слайдеры
+    local flySpeedSlider, getFlySpeed, setFlySpeed = CreateSlider(scrollFrame, "FlySpeedSlider", 
+        UDim2.new(0, 0, 0, 0), 300, "Fly Speed:", 10, 200, 50)
+
+    local walkSpeedSlider, getWalkSpeed, setWalkSpeed = CreateSlider(scrollFrame, "WalkSpeedSlider", 
+        UDim2.new(0, 0, 0, 0), 300, "Walk Speed:", 16, 100, 16)
+
+    local jumpPowerSlider, getJumpPower, setJumpPower = CreateSlider(scrollFrame, "JumpPowerSlider", 
+        UDim2.new(0, 0, 0, 0), 300, "Jump Power:", 50, 200, 50)
+
+    local gravitySlider, getGravity, setGravity = CreateSlider(scrollFrame, "GravitySlider", 
+        UDim2.new(0, 0, 0, 0), 300, "Gravity:", 0, 200, 196)
+
+    local toggleGuiButton = CreateButton(scrollFrame, "ToggleGuiButton", 
+        UDim2.new(0, 0, 0, 0), 
+        UDim2.new(1, 0, 0, 35), 
         "HIDE GUI", 
         Color3.fromRGB(70, 70, 80))
 
@@ -193,10 +276,7 @@ local function DeltaXAdmin()
     titleBar.Parent = mainFrame
     title.Parent = titleBar
     closeButton.Parent = titleBar
-    buttonsFrame.Parent = mainFrame
-    godButton.Parent = buttonsFrame
-    flyButton.Parent = buttonsFrame
-    toggleGuiButton.Parent = buttonsFrame
+    scrollFrame.Parent = mainFrame
     mainFrame.Parent = screenGui
     screenGui.Parent = playerGui
 
@@ -207,15 +287,19 @@ local function DeltaXAdmin()
     local bodyVelocity, bodyGyro
     local flyConnection
     local isMobile = UserInputService.TouchEnabled
+    local originalGravity = Workspace.Gravity
 
-    -- Создаем элементы управления для полета (доступны всегда)
+    -- Сохраняем оригинальные значения
+    local originalWalkSpeed = 16
+    local originalJumpPower = 50
+
+    -- Создаем элементы управления для полета
     local flyControls = Instance.new("ScreenGui")
     flyControls.Name = "FlyControls"
     flyControls.ResetOnSpawn = false
     flyControls.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     flyControls.Enabled = false
 
-    -- Джойстик для движения
     local joyStick = Instance.new("Frame")
     joyStick.Name = "JoyStick"
     joyStick.Size = UDim2.new(0, 120, 0, 120)
@@ -234,7 +318,6 @@ local function DeltaXAdmin()
     joyStickKnob.BorderSizePixel = 0
     joyStickKnob.Parent = joyStick
 
-    -- Кнопки для высоты (только на мобильных)
     local upButton = CreateButton(flyControls, "UpButton", 
         UDim2.new(1, -80, 1, -180), 
         UDim2.new(0, 60, 0, 60), 
@@ -247,7 +330,6 @@ local function DeltaXAdmin()
         "↓", 
         Color3.fromRGB(80, 80, 90))
 
-    -- Кнопки для ПК управления (всегда видны)
     local pcControls = Instance.new("TextLabel")
     pcControls.Name = "PCControls"
     pcControls.Text = "PC: WASD + Space/Shift"
@@ -278,7 +360,6 @@ local function DeltaXAdmin()
         
         toggleGuiButton.Text = guiVisible and "HIDE GUI" or "SHOW GUI"
         
-        -- Показываем/скрываем мобильные элементы в зависимости от устройства
         if isMobile then
             joyStick.Visible = true
             upButton.Visible = true
@@ -291,6 +372,34 @@ local function DeltaXAdmin()
             pcControls.Visible = true
         end
     end
+
+    -- Функция применения скорости и гравитации
+    local function ApplyStats()
+        local character = player.Character
+        if not character then return end
+        
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+        
+        -- Применяем скорость ходьбы
+        humanoid.WalkSpeed = getWalkSpeed()
+        
+        -- Применяем силу прыжка
+        humanoid.JumpPower = getJumpPower()
+        
+        -- Применяем гравитацию
+        Workspace.Gravity = getGravity()
+    end
+
+    -- Обработка изменений слайдеров
+    local function onStatChange()
+        ApplyStats()
+    end
+
+    flySpeedSlider.Changed:Connect(onStatChange)
+    walkSpeedSlider.Changed:Connect(onStatChange)
+    jumpPowerSlider.Changed:Connect(onStatChange)
+    gravitySlider.Changed:Connect(onStatChange)
 
     -- Обработка мобильного управления
     joyStick.InputBegan:Connect(function(input)
@@ -320,7 +429,6 @@ local function DeltaXAdmin()
         end
     end)
     
-    -- Кнопки высоты
     upButton.MouseButton1Down:Connect(function()
         upPressed = true
     end)
@@ -351,12 +459,10 @@ local function DeltaXAdmin()
         if not humanoid then return end
         
         humanoid.PlatformStand = true
+        flyControls.Enabled = true
         
         local root = player.Character:FindFirstChild("HumanoidRootPart") or player.Character.PrimaryPart
         if not root then return end
-        
-        -- Включаем элементы управления полетом
-        flyControls.Enabled = true
         
         bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
@@ -380,40 +486,37 @@ local function DeltaXAdmin()
             
             local cam = workspace.CurrentCamera
             local direction = Vector3.new()
-            local flySpeed = 50
+            local currentFlySpeed = getFlySpeed()
             
-            -- Управление для всех устройств
             if isMobile then
-                -- Мобильное управление (джойстик + кнопки)
                 if joyStickActive then
-                    direction = direction + (cam.CFrame.RightVector * joyStickDirection.X * flySpeed)
-                    direction = direction - (cam.CFrame.LookVector * joyStickDirection.Y * flySpeed)
+                    direction = direction + (cam.CFrame.RightVector * joyStickDirection.X * currentFlySpeed)
+                    direction = direction - (cam.CFrame.LookVector * joyStickDirection.Y * currentFlySpeed)
                 end
                 if upPressed then
-                    direction = direction + Vector3.new(0, flySpeed, 0)
+                    direction = direction + Vector3.new(0, currentFlySpeed, 0)
                 end
                 if downPressed then
-                    direction = direction - Vector3.new(0, flySpeed, 0)
+                    direction = direction - Vector3.new(0, currentFlySpeed, 0)
                 end
             else
-                -- ПК управление (клавиатура)
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                    direction = direction + (cam.CFrame.LookVector * flySpeed)
+                    direction = direction + (cam.CFrame.LookVector * currentFlySpeed)
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                    direction = direction - (cam.CFrame.LookVector * flySpeed)
+                    direction = direction - (cam.CFrame.LookVector * currentFlySpeed)
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                    direction = direction - (cam.CFrame.RightVector * flySpeed)
+                    direction = direction - (cam.CFrame.RightVector * currentFlySpeed)
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                    direction = direction + (cam.CFrame.RightVector * flySpeed)
+                    direction = direction + (cam.CFrame.RightVector * currentFlySpeed)
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                    direction = direction + Vector3.new(0, flySpeed, 0)
+                    direction = direction + Vector3.new(0, currentFlySpeed, 0)
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                    direction = direction - Vector3.new(0, flySpeed, 0)
+                    direction = direction - Vector3.new(0, currentFlySpeed, 0)
                 end
             end
             
@@ -448,7 +551,6 @@ local function DeltaXAdmin()
         bodyVelocity = nil
         bodyGyro = nil
         
-        -- Сбрасываем состояние управления
         joyStickActive = false
         joyStickDirection = Vector2.new()
         joyStickKnob.Position = UDim2.new(0.5, -20, 0.5, -20)
@@ -485,10 +587,26 @@ local function DeltaXAdmin()
 
     -- Закрытие GUI
     closeButton.MouseButton1Click:Connect(function()
+        -- Восстанавливаем оригинальные значения
+        Workspace.Gravity = originalGravity
+        if player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = originalWalkSpeed
+                humanoid.JumpPower = originalJumpPower
+            end
+        end
+        
         screenGui:Destroy()
         showGuiButton:Destroy()
         flyControls:Destroy()
         _G.DeltaXAdminLoaded = false
+    end)
+
+    -- Применяем настройки при появлении персонажа
+    player.CharacterAdded:Connect(function(character)
+        character:WaitForChild("Humanoid")
+        ApplyStats()
     end)
 
     -- Перемещение GUI
@@ -527,6 +645,7 @@ local function DeltaXAdmin()
 
     -- Первоначальное обновление UI
     UpdateUI()
+    ApplyStats()
 end
 
 -- Запускаем скрипт
