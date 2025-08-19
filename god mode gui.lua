@@ -8,7 +8,7 @@ kotirScreen.IgnoreGuiInset = true
 kotirScreen.ResetOnSpawn = false
 
 local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(1, 0, , 0)
+textLabel.Size = UDim2.new(1, 0, 1, 0)
 textLabel.BackgroundColor3 = Color3.new(0, 0, 0)
 textLabel.Text = "MADE BY SOJO"
 textLabel.TextColor3 = Color3.new(1, 1, 1)
