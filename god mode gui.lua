@@ -1,7 +1,7 @@
 -- Delta X Admin Panel (God Mode + Fly Mode)
 -- Полностью автономный скрипт с мобильной поддержкой
 
-local function DeltaXAdmin(
+local function DeltaXAdmin()
     -- Проверка на повторный запуск
     if _G.DeltaXAdminLoaded then return end
     _G.DeltaXAdminLoaded = true
