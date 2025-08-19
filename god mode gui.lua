@@ -1,4 +1,4 @@
--- Delta X Admin Panel (God Mode + Fly Mode + Speed + Gravity)
+-- Delta X Admin Panel (Fly Mode + Speed + Gravity)
 -- Полная поддержка ПК и мобильных устройств
 
 local function DeltaXAdmin()
@@ -13,7 +13,6 @@ local function DeltaXAdmin()
 
     -- Получаем сервисы
     local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local UserInputService = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
     local TweenService = game:GetService("TweenService")
@@ -194,7 +193,7 @@ local function DeltaXAdmin()
     mainFrame.Name = "MainFrame"
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    mainFrame.Size = UDim2.new(0, 350, 0, 320)
+    mainFrame.Size = UDim2.new(0, 350, 0, 280)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     mainFrame.BorderSizePixel = 0
     mainFrame.BackgroundTransparency = 0.1
@@ -233,20 +232,14 @@ local function DeltaXAdmin()
     scrollFrame.Size = UDim2.new(1, -20, 1, -50)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.ScrollBarThickness = 5
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 350)
 
     local buttonsLayout = Instance.new("UIListLayout")
     buttonsLayout.Name = "ButtonsLayout"
     buttonsLayout.Padding = UDim.new(0, 5)
     buttonsLayout.Parent = scrollFrame
 
-    -- Создаем кнопки управления
-    local godButton = CreateButton(scrollFrame, "GodButton", 
-        UDim2.new(0, 0, 0, 0), 
-        UDim2.new(1, 0, 0, 35), 
-        "GOD MODE: OFF", 
-        Color3.fromRGB(80, 80, 90))
-
+    -- Создаем кнопку Fly Mode
     local flyButton = CreateButton(scrollFrame, "FlyButton", 
         UDim2.new(0, 0, 0, 0), 
         UDim2.new(1, 0, 0, 35), 
@@ -281,7 +274,6 @@ local function DeltaXAdmin()
     screenGui.Parent = playerGui
 
     -- Логика работы
-    local godEnabled = false
     local flyEnabled = false
     local guiVisible = true
     local bodyVelocity, bodyGyro
@@ -352,12 +344,8 @@ local function DeltaXAdmin()
 
     -- Функция обновления интерфейса
     local function UpdateUI()
-        godButton.Text = "GOD MODE: " .. (godEnabled and "ON" or "OFF")
-        godButton.BackgroundColor3 = godEnabled and Color3.fromRGB(90, 180, 90) or Color3.fromRGB(80, 80, 90)
-        
         flyButton.Text = "FLY MODE: " .. (flyEnabled and "ON" or "OFF")
         flyButton.BackgroundColor3 = flyEnabled and Color3.fromRGB(90, 90, 180) or Color3.fromRGB(80, 80, 90)
-        
         toggleGuiButton.Text = guiVisible and "HIDE GUI" or "SHOW GUI"
         
         if isMobile then
@@ -443,12 +431,6 @@ local function DeltaXAdmin()
     
     downButton.MouseButton1Up:Connect(function()
         downPressed = false
-    end)
-
-    -- God Mode логика
-    godButton.MouseButton1Click:Connect(function()
-        godEnabled = not godEnabled
-        UpdateUI()
     end)
 
     -- Fly Mode логика
