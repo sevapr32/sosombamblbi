@@ -1,3 +1,27 @@
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local userInputService = game:GetService("UserInputService")
+
+local kotirScreen = Instance.new("ScreenGui")
+kotirScreen.Name = "KotirScreen"
+kotirScreen.IgnoreGuiInset = true
+kotirScreen.ResetOnSpawn = false
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+textLabel.Text = "MADE BY SOJO"
+textLabel.TextColor3 = Color3.new(1, 1, 1)
+textLabel.TextScaled = true
+textLabel.Font = Enum.Font.SciFi
+textLabel.Parent = kotirScreen
+
+kotirScreen.Parent = playerGui
+
+wait(3)
+kotirScreen:Destroy()
+```
+
 -- Delta X Admin Panel (God Mode + Fly Mode)
 -- Автономный скрипт, не требует внешних зависимостей
 
