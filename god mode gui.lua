@@ -1,4 +1,4 @@
-- Delta X Admin Panel (Fly Mode + Speed + Gravity)
+-- Delta X Admin Panel (Fly Mode + Speed + Gravity)
 -- Полная поддержка ПК и мобильных устройств
 
 local function DeltaXAdmin()
