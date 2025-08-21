@@ -1,5 +1,5 @@
 -- SOJ-GUI Panel (Fly Mode + Speed + Gravity + ESP)
--- Полностью рабочий скрипт
+-- Без ограничений в вводе значений
 
 local function SOJ_GUI()
     -- Проверка на повторный запуск
@@ -103,8 +103,8 @@ local function SOJ_GUI()
         return button
     end
 
-    -- Функция для создания слайдеров
-    local function CreateSliderWithInput(parent, name, position, width, text, minValue, maxValue, defaultValue)
+    -- Функция для создания слайдеров БЕЗ ОГРАНИЧЕНИЙ
+    local function CreateSliderWithInput(parent, name, position, width, text, defaultValue)
         local sliderFrame = Instance.new("Frame")
         sliderFrame.Name = name
         sliderFrame.Position = position
@@ -153,7 +153,7 @@ local function SOJ_GUI()
         local currentValue = defaultValue
 
         local function updateValue(newValue)
-            currentValue = math.clamp(newValue, minValue, maxValue)
+            currentValue = newValue
             inputBox.Text = tostring(currentValue)
             return currentValue
         end
@@ -168,11 +168,11 @@ local function SOJ_GUI()
         end)
 
         minusButton.MouseButton1Click:Connect(function()
-            updateValue(currentValue - 1)
+            updateValue((tonumber(inputBox.Text) or 0) - 1)
         end)
 
         plusButton.MouseButton1Click:Connect(function()
-            updateValue(currentValue + 1)
+            updateValue((tonumber(inputBox.Text) or 0) + 1)
         end)
 
         return sliderFrame, function() return currentValue end, updateValue
@@ -276,18 +276,18 @@ local function SOJ_GUI()
         "ESP: OFF", 
         Color3.fromRGB(80, 80, 90))
 
-    -- Создаем слайдеры
+    -- Создаем слайдеры БЕЗ ОГРАНИЧЕНИЙ
     local flySpeedSlider, getFlySpeed, setFlySpeed = CreateSliderWithInput(scrollFrame, "FlySpeedSlider", 
-        UDim2.new(0, 0, 0, 0), 300, "Fly Speed:", 10, 200, 50)
+        UDim2.new(0, 0, 0, 0), 300, "Fly Speed:", 50)
 
     local walkSpeedSlider, getWalkSpeed, setWalkSpeed = CreateSliderWithInput(scrollFrame, "WalkSpeedSlider", 
-        UDim2.new(0, 0, 0, 0), 300, "Walk Speed:", 16, 100, 16)
+        UDim2.new(0, 0, 0, 0), 300, "Walk Speed:", 16)
 
     local jumpPowerSlider, getJumpPower, setJumpPower = CreateSliderWithInput(scrollFrame, "JumpPowerSlider", 
-        UDim2.new(0, 0, 0, 0), 300, "Jump Power:", 50, 200, 50)
+        UDim2.new(0, 0, 0, 0), 300, "Jump Power:", 50)
 
     local gravitySlider, getGravity, setGravity = CreateSliderWithInput(scrollFrame, "GravitySlider", 
-        UDim2.new(0, 0, 0, 0), 300, "Gravity:", 0, 200, 196)
+        UDim2.new(0, 0, 0, 0), 300, "Gravity:", 196)
 
     local toggleGuiButton = CreateButton(scrollFrame, "ToggleGuiButton", 
         UDim2.new(0, 0, 0, 0), 
@@ -645,14 +645,10 @@ local function SOJ_GUI()
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if not humanoid then return end
         
-        humanoid.WalkSpeed = getWalkSpeed()
-        humanoid.JumpPower = getJumpPower()
-        Workspace.Gravity = getGravity()
-    end
-
-    -- Обработка изменений слайдеров
-    local function onStatChange()
-        ApplyStats()
+        -- БЕЗ ОГРАНИЧЕНИЙ - любые значения
+        humanoid.WalkSpeed = getWalkSpeed() or 16
+        humanoid.JumpPower = getJumpPower() or 50
+        Workspace.Gravity = getGravity() or 196
     end
 
     -- Fly Mode логика
@@ -690,7 +686,7 @@ local function SOJ_GUI()
             
             local cam = workspace.CurrentCamera
             local direction = Vector3.new()
-            local currentFlySpeed = getFlySpeed()
+            local currentFlySpeed = getFlySpeed() or 50
             
             if isMobile then
                 if joyStickActive then
@@ -819,10 +815,10 @@ local function SOJ_GUI()
         ApplyStats()
     end)
 
-    -- Автоматическое применение настроек при изменении значений
+    -- Автоматическое применение настроек
     spawn(function()
         while true do
-            wait(1)
+            wait(0.5)
             ApplyStats()
         end
     end)
@@ -832,8 +828,8 @@ local function SOJ_GUI()
     ApplyStats()
 
     print("SOJ-GUI успешно загружен!")
-    print("MADE BY SOJO - Фиолетовая надпись")
-    print("SOJ-GUI - Лаймовая надпись в заголовке")
+    print("Без ограничений в вводе значений!")
+    print("Можно вводить любые числа (даже отрицательные и очень большие)")
 end
 
 -- Запускаем скрипт
