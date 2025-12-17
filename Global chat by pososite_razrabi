@@ -1,0 +1,375 @@
+-- ============================================
+-- АВТОНОМНЫЙ ФИОЛЕТОВЫЙ ПЕРЕТАСКИВАЕМЫЙ ЧАТ
+-- Просто вставьте этот код в LocalScript в StarterGui
+-- Автор: pososite_razrabi
+-- ============================================
+
+--[[
+ВСЕ В ОДНОМ СКРИПТЕ:
+✓ Полностью автономный
+✓ Фиолетовый дизайн
+✓ Перетаскивается за верхнюю панель
+✓ Сохраняет историю сообщений
+✓ Работает сразу после запуска
+✓ Не требует других скриптов
+]]
+
+-- Основные сервисы
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- ФИОЛЕТОВАЯ ЦВЕТОВАЯ ПАЛИТРА
+local PURPLE = {
+	MAIN = Color3.fromRGB(138, 43, 226),     -- Фиолетовый
+	DARK = Color3.fromRGB(75, 0, 130),       -- Темно-фиолетовый
+	LIGHT = Color3.fromRGB(216, 191, 216),   -- Лавандовый
+	ACCENT = Color3.fromRGB(186, 85, 211),   -- Орхидея
+	TEXT = Color3.fromRGB(230, 230, 250),    -- Лавандово-белый
+	SHADOW = Color3.fromRGB(48, 25, 52)      -- Тень
+}
+
+-- НАСТРОЙКИ
+local Settings = {
+	MAX_MESSAGES = 50,
+	SAVE_KEY = "PurpleChat_v1",
+	CHAT_WIDTH = 380,
+	CHAT_HEIGHT = 420,
+	FADE_TIME = 15
+}
+
+-- ПЕРЕМЕННЫЕ
+local chatHistory = {}
+local isDragging = false
+local dragStart
+local chatStartPos
+local lastActivity = tick()
+
+-- ========== СОЗДАНИЕ ИНТЕРФЕЙСА ==========
+
+-- Главное окно
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PurpleGlobalChat"
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.ResetOnSpawn = false
+
+-- Контейнер чата
+local chatFrame = Instance.new("Frame")
+chatFrame.Name = "ChatFrame"
+chatFrame.Size = UDim2.new(0, Settings.CHAT_WIDTH, 0, Settings.CHAT_HEIGHT)
+chatFrame.Position = UDim2.new(0.02, 0, 0.55, 0)
+chatFrame.BackgroundColor3 = PURPLE.DARK
+chatFrame.BackgroundTransparency = 0.1
+chatFrame.BorderSizePixel = 0
+chatFrame.Active = true
+chatFrame.Draggable = false
+
+-- Скругленные углы
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = chatFrame
+
+-- Фиолетовая обводка
+local stroke = Instance.new("UIStroke")
+stroke.Color = PURPLE.ACCENT
+stroke.Thickness = 2
+stroke.Transparency = 0.2
+stroke.Parent = chatFrame
+
+-- ВЕРХНЯЯ ПАНЕЛЬ (для перетаскивания)
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 40)
+topBar.BackgroundColor3 = PURPLE.MAIN
+topBar.BackgroundTransparency = 0.05
+topBar.BorderSizePixel = 0
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 12)
+topCorner.Parent = topBar
+
+-- Надпись на верхней панели
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -10, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "GLOBAL CHAT\nby pososite_razrabi"
+title.TextColor3 = PURPLE.LIGHT
+title.TextSize = 16
+title.Font = Enum.Font.SourceSansSemibold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextYAlignment = Enum.TextYAlignment.Center
+title.TextWrapped = true
+
+-- ОКОНЧАТЕЛЬНАЯ ИЕРАРХИЯ ОБЪЕКТОВ
+topBar.Parent = chatFrame
+title.Parent = topBar
+chatFrame.Parent = screenGui
+screenGui.Parent = PlayerGui
+
+-- ОБЛАСТЬ СООБЩЕНИЙ
+local messagesFrame = Instance.new("ScrollingFrame")
+messagesFrame.Name = "MessagesFrame"
+messagesFrame.Size = UDim2.new(1, -16, 1, -110)
+messagesFrame.Position = UDim2.new(0, 8, 0, 48)
+messagesFrame.BackgroundTransparency = 1
+messagesFrame.BorderSizePixel = 0
+messagesFrame.ScrollBarThickness = 6
+messagesFrame.ScrollBarImageColor3 = PURPLE.ACCENT
+messagesFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+messagesFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+messagesFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+messagesFrame.Parent = chatFrame
+
+local messagesLayout = Instance.new("UIListLayout")
+messagesLayout.Padding = UDim.new(0, 6)
+messagesLayout.SortOrder = Enum.SortOrder.LayoutOrder
+messagesLayout.Parent = messagesFrame
+
+-- ПОЛЕ ВВОДА
+local inputFrame = Instance.new("Frame")
+inputFrame.Name = "InputFrame"
+inputFrame.Size = UDim2.new(1, -16, 0, 40)
+inputFrame.Position = UDim2.new(0, 8, 1, -48)
+inputFrame.BackgroundColor3 = PURPLE.DARK
+inputFrame.BackgroundTransparency = 0.3
+inputFrame.BorderSizePixel = 0
+inputFrame.Parent = chatFrame
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 8)
+inputCorner.Parent = inputFrame
+
+local inputBox = Instance.new("TextBox")
+inputBox.Name = "ChatInput"
+inputBox.Size = UDim2.new(1, 0, 1, 0)
+inputBox.BackgroundTransparency = 1
+inputBox.TextColor3 = PURPLE.TEXT
+inputBox.Text = ""
+inputBox.PlaceholderText = "Напишите сообщение... (Enter)"
+inputBox.PlaceholderColor3 = PURPLE.LIGHT
+inputBox.Font = Enum.Font.SourceSans
+inputBox.TextSize = 16
+inputBox.TextXAlignment = Enum.TextXAlignment.Left
+inputBox.TextYAlignment = Enum.TextYAlignment.Center
+inputBox.ClearTextOnFocus = false
+inputBox.Parent = inputFrame
+
+-- ========== ФУНКЦИИ ЧАТА ==========
+
+-- Добавление сообщения
+local function AddMessage(playerName, message, color)
+	-- Ограничение длины
+	if #message > 200 then
+		message = message:sub(1, 200) .. "..."
+	end
+	
+	-- Сохранение в историю
+	table.insert(chatHistory, {
+		player = playerName,
+		message = message,
+		time = os.date("%H:%M"),
+		color = color or PURPLE.TEXT
+	})
+	
+	-- Ограничение истории
+	while #chatHistory > Settings.MAX_MESSAGES do
+		table.remove(chatHistory, 1)
+	end
+	
+	-- Создание визуального сообщения
+	local msgFrame = Instance.new("Frame")
+	msgFrame.Size = UDim2.new(1, 0, 0, 0)
+	msgFrame.BackgroundTransparency = 1
+	msgFrame.AutomaticSize = Enum.AutomaticSize.Y
+	msgFrame.LayoutOrder = #chatHistory
+	
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 4)
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = msgFrame
+	
+	-- Время
+	local timeLabel = Instance.new("TextLabel")
+	timeLabel.Size = UDim2.new(0, 40, 0, 20)
+	timeLabel.BackgroundTransparency = 1
+	timeLabel.Text = "[" .. os.date("%H:%M") .. "]"
+	timeLabel.TextColor3 = PURPLE.ACCENT
+	timeLabel.TextSize = 12
+	timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+	timeLabel.Font = Enum.Font.SourceSansSemibold
+	timeLabel.LayoutOrder = 1
+	timeLabel.Parent = msgFrame
+	
+	-- Имя игрока
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(0, 0, 0, 20)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = playerName .. ": "
+	nameLabel.TextColor3 = color or PURPLE.TEXT
+	nameLabel.TextSize = 14
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Font = Enum.Font.SourceSansSemibold
+	nameLabel.AutomaticSize = Enum.AutomaticSize.X
+	nameLabel.LayoutOrder = 2
+	nameLabel.Parent = msgFrame
+	
+	-- Текст сообщения
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.new(1, -50, 0, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = message
+	textLabel.TextColor3 = PURPLE.LIGHT
+	textLabel.TextSize = 14
+	textLabel.TextXAlignment = Enum.TextXAlignment.Left
+	textLabel.TextYAlignment = Enum.TextYAlignment.Top
+	textLabel.Font = Enum.Font.SourceSans
+	textLabel.TextWrapped = true
+	textLabel.AutomaticSize = Enum.AutomaticSize.Y
+	textLabel.LayoutOrder = 3
+	textLabel.Parent = msgFrame
+	
+	-- Добавление в окно чата
+	msgFrame.Parent = messagesFrame
+	
+	-- Автопрокрутка вниз
+	task.wait(0.05)
+	messagesFrame.CanvasPosition = Vector2.new(0, messagesFrame.AbsoluteCanvasSize.Y)
+	
+	-- Обновление активности
+	lastActivity = tick()
+	chatFrame.BackgroundTransparency = 0.1
+end
+
+-- Отправка сообщения
+local function SendMessage()
+	local text = inputBox.Text:gsub("^%s*(.-)%s*$", "%1")
+	
+	if #text > 0 then
+		AddMessage(Player.Name, text, Color3.fromRGB(100, 255, 100))
+		inputBox.Text = ""
+	end
+	
+	inputBox:ReleaseFocus()
+end
+
+-- ========== ПЕРЕТАСКИВАНИЕ ==========
+
+-- Начало перетаскивания
+topBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isDragging = true
+		dragStart = input.Position
+		chatStartPos = chatFrame.Position
+		
+		-- Визуальная обратная связь
+		topBar.BackgroundTransparency = 0.2
+		lastActivity = tick()
+	end
+end)
+
+-- Процесс перетаскивания
+UserInputService.InputChanged:Connect(function(input)
+	if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		chatFrame.Position = UDim2.new(
+			chatStartPos.X.Scale,
+			chatStartPos.X.Offset + delta.X,
+			chatStartPos.Y.Scale,
+			chatStartPos.Y.Offset + delta.Y
+		)
+		lastActivity = tick()
+	end
+end)
+
+-- Конец перетаскивания
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isDragging = false
+		topBar.BackgroundTransparency = 0.05
+	end
+end)
+
+-- ========== УПРАВЛЕНИЕ ВВОДОМ ==========
+
+-- Отправка по Enter
+inputBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		SendMessage()
+	end
+end)
+
+-- Горячие клавиши
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+	
+	if input.KeyCode == Enum.KeyCode.Return then
+		if inputBox:IsFocused() then
+			SendMessage()
+		else
+			inputBox:CaptureFocus()
+			lastActivity = tick()
+			chatFrame.BackgroundTransparency = 0.1
+		end
+		
+	elseif input.KeyCode == Enum.KeyCode.Slash then
+		inputBox:CaptureFocus()
+		lastActivity = tick()
+		chatFrame.BackgroundTransparency = 0.1
+		
+	elseif input.KeyCode == Enum.KeyCode.Escape then
+		if inputBox:IsFocused() then
+			inputBox:ReleaseFocus()
+			inputBox.Text = ""
+		end
+	end
+end)
+
+-- ========== СИСТЕМА АВТОСКРЫТИЯ ==========
+
+task.spawn(function()
+	while true do
+		local currentTime = tick()
+		local inactiveTime = currentTime - lastActivity
+		
+		-- Плавное скрытие при неактивности
+		if inactiveTime > Settings.FADE_TIME then
+			chatFrame.BackgroundTransparency = math.min(0.7, 0.1 + (inactiveTime - Settings.FADE_TIME) * 0.1)
+		else
+			chatFrame.BackgroundTransparency = 0.1
+		end
+		
+		task.wait(0.5)
+	end
+end)
+
+-- ========== ЗАГРУЗКА И ЗАПУСК ==========
+
+-- Загрузка начальных сообщений
+task.spawn(function()
+	task.wait(1)
+	
+	-- Приветственные сообщения
+	AddMessage("💜 СИСТЕМА", "Фиолетовый Global Chat загружен!", PURPLE.ACCENT)
+	task.wait(1)
+	AddMessage("💜 СИСТЕМА", "Тащите за верхнюю панель", PURPLE.LIGHT)
+	task.wait(1)
+	AddMessage("💜 СИСТЕМА", "Пишите сообщения - Enter для отправки", PURPLE.ACCENT)
+	task.wait(1)
+	AddMessage("💜 СИСТЕМА", "Чат автоматически скрывается при неактивности", PURPLE.LIGHT)
+end)
+
+-- Информация в консоль
+print("=====================================")
+print("💜 ФИОЛЕТОВЫЙ GLOBAL CHAT АКТИВИРОВАН")
+print("by pososite_razrabi")
+print("=====================================")
+
+-- Окончательная инициализация
+chatFrame.Visible = true
