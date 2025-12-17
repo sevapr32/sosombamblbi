@@ -1,18 +1,17 @@
 -- ============================================
 -- АВТОНОМНЫЙ ФИОЛЕТОВЫЙ ПЕРЕТАСКИВАЕМЫЙ ЧАТ
--- Поддержка ПК и телефона
+-- С кнопкой закрытия в правом верхнем углу
 -- Просто вставьте этот код в LocalScript в StarterGui
 -- Автор: pososite_razrabi
 -- ============================================
 
 --[[
 ОСОБЕННОСТИ:
-✓ Работает на ПК и телефоне
-✓ Изначально по центру экрана
-✓ Перетаскивается пальцем/мышью
+✓ Кнопка закрытия ❌ в правом верхнем углу
+✓ Полное удаление GUI и остановка скрипта
+✓ Поддержка ПК и телефона
+✓ Центрированный по умолчанию
 ✓ Полностью фиолетовый дизайн
-✓ Сохраняет историю сообщений
-✓ Автономный - один скрипт
 ]]
 
 -- Основные сервисы
@@ -26,7 +25,6 @@ local GuiService = game:GetService("GuiService")
 -- Определяем тип устройства
 local IS_MOBILE = UserInputService.TouchEnabled
 local IS_DESKTOP = UserInputService.MouseEnabled
-local IS_GAMEPAD = UserInputService.GamepadEnabled
 
 -- ФИОЛЕТОВАЯ ЦВЕТОВАЯ ПАЛИТРА
 local PURPLE = {
@@ -35,6 +33,608 @@ local PURPLE = {
 	LIGHT = Color3.fromRGB(216, 191, 216),   -- Лавандовый
 	ACCENT = Color3.fromRGB(186, 85, 211),   -- Орхидея
 	TEXT = Color3.fromRGB(230, 230, 250),    -- Лавандово-белый
+	SHADOW = Color3.fromRGB(48, 25, 52),     -- Тень
+	GLOW = Color3.fromRGB(200, 150, 255),    -- Свечение
+	CLOSE = Color3.fromRGB(255, 100, 100)    -- Красный для кнопки закрытия
+}
+
+-- НАСТРОЙКИ
+local Settings = {
+	MAX_MESSAGES = 50,
+	CHAT_WIDTH = IS_MOBILE and 320 or 380,
+	CHAT_HEIGHT = IS_MOBILE and 400 or 420,
+	FADE_TIME = IS_MOBILE and 20 or 15,
+	FONT_SIZE = IS_MOBILE and 14 or 16,
+	TITLE_SIZE = IS_MOBILE and 14 or 16,
+	INPUT_HEIGHT = IS_MOBILE and 44 or 40
+}
+
+-- ПЕРЕМЕННЫЕ
+local chatHistory = {}
+local isDragging = false
+local dragStart
+local chatStartPos
+local lastActivity = tick()
+local isChatActive = true -- Флаг активности чата
+
+-- ========== ФУНКЦИИ ПОЗИЦИОНИРОВАНИЯ ==========
+
+local function GetCenterPosition()
+	if IS_MOBILE then
+		return UDim2.new(0.5, -Settings.CHAT_WIDTH/2, 0.4, -Settings.CHAT_HEIGHT/2)
+	else
+		return UDim2.new(0.5, -Settings.CHAT_WIDTH/2, 0.5, -Settings.CHAT_HEIGHT/2)
+	end
+end
+
+local function ClampToScreen(position)
+	local screenSize = PlayerGui.AbsoluteSize
+	local chatSize = Vector2.new(Settings.CHAT_WIDTH, Settings.CHAT_HEIGHT)
+	
+	local xPos = position.X.Scale * screenSize.X + position.X.Offset
+	local yPos = position.Y.Scale * screenSize.Y + position.Y.Offset
+	
+	xPos = math.clamp(xPos, 0, screenSize.X - chatSize.X)
+	yPos = math.clamp(yPos, 0, screenSize.Y - chatSize.Y)
+	
+	return UDim2.new(0, xPos, 0, yPos)
+end
+
+-- ========== СОЗДАНИЕ ИНТЕРФЕЙСА ==========
+
+-- Главное окно
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PurpleGlobalChat_Closable"
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = IS_MOBILE
+
+-- Контейнер чата
+local chatFrame = Instance.new("Frame")
+chatFrame.Name = "ChatFrame"
+chatFrame.Size = UDim2.new(0, Settings.CHAT_WIDTH, 0, Settings.CHAT_HEIGHT)
+chatFrame.BackgroundColor3 = PURPLE.DARK
+chatFrame.BackgroundTransparency = 0.08
+chatFrame.BorderSizePixel = 0
+chatFrame.Active = true
+chatFrame.Selectable = true
+chatFrame.Position = GetCenterPosition()
+
+-- Скругленные углы
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 14)
+corner.Parent = chatFrame
+
+-- Фиолетовая обводка
+local stroke = Instance.new("UIStroke")
+stroke.Color = PURPLE.GLOW
+stroke.Thickness = 2.5
+stroke.Transparency = 0.1
+stroke.Parent = chatFrame
+
+-- Тень
+local shadow = Instance.new("ImageLabel")
+shadow.Name = "Shadow"
+shadow.Size = UDim2.new(1, 24, 1, 24)
+shadow.Position = UDim2.new(0, -12, 0, -12)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://5554236805"
+shadow.ImageColor3 = PURPLE.SHADOW
+shadow.ImageTransparency = 0.7
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+shadow.Parent = chatFrame
+
+-- ВЕРХНЯЯ ПАНЕЛЬ
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, IS_MOBILE and 44 or 40)
+topBar.BackgroundColor3 = PURPLE.MAIN
+topBar.BackgroundTransparency = 0
+topBar.BorderSizePixel = 0
+topBar.Active = true
+topBar.Selectable = true
+
+-- Индикатор перетаскивания для мобильных
+if IS_MOBILE then
+	local dragIndicator = Instance.new("Frame")
+	dragIndicator.Name = "DragIndicator"
+	dragIndicator.Size = UDim2.new(0, 60, 0, 4)
+	dragIndicator.Position = UDim2.new(0.5, -30, 0, 6)
+	dragIndicator.BackgroundColor3 = PURPLE.LIGHT
+	dragIndicator.BackgroundTransparency = 0.4
+	dragIndicator.BorderSizePixel = 0
+	
+	local dragCorner = Instance.new("UICorner")
+	dragCorner.CornerRadius = UDim.new(1, 0)
+	dragCorner.Parent = dragIndicator
+	
+	dragIndicator.Parent = topBar
+end
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 14)
+topCorner.Parent = topBar
+
+-- НАДПИСЬ НА ВЕРХНЕЙ ПАНЕЛИ (слева)
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -50, 1, 0) -- Оставляем место для кнопки закрытия
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "💜 GLOBAL CHAT\nby pososite_razrabi"
+title.TextColor3 = PURPLE.LIGHT
+title.TextSize = Settings.TITLE_SIZE
+title.Font = IS_MOBILE and Enum.Font.SourceSans or Enum.Font.SourceSansSemibold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextYAlignment = Enum.TextYAlignment.Center
+title.TextWrapped = true
+title.TextStrokeColor3 = PURPLE.DARK
+title.TextStrokeTransparency = 0.5
+
+-- КНОПКА ЗАКРЫТИЯ ❌ (в правом верхнем углу)
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 32, 0, 32)
+closeButton.Position = UDim2.new(1, -38, 0.5, -16)
+closeButton.BackgroundColor3 = PURPLE.CLOSE
+closeButton.BackgroundTransparency = 0.1
+closeButton.Text = "✕"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextSize = IS_MOBILE and 20 or 18
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.AutoButtonColor = false
+closeButton.ZIndex = 10
+
+-- Скругление кнопки
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeButton
+
+-- Обводка кнопки
+local closeStroke = Instance.new("UIStroke")
+closeStroke.Color = Color3.fromRGB(255, 150, 150)
+closeStroke.Thickness = 1.5
+closeStroke.Parent = closeButton
+
+-- Эффект при наведении (только для ПК)
+if IS_DESKTOP then
+	closeButton.MouseEnter:Connect(function()
+		closeButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		closeButton.BackgroundTransparency = 0
+	end)
+	
+	closeButton.MouseLeave:Connect(function()
+		closeButton.BackgroundColor3 = PURPLE.CLOSE
+		closeButton.BackgroundTransparency = 0.1
+	end)
+end
+
+-- ОКОНЧАТЕЛЬНАЯ ИЕРАРХИЯ ОБЪЕКТОВ
+topBar.Parent = chatFrame
+title.Parent = topBar
+closeButton.Parent = topBar
+chatFrame.Parent = screenGui
+screenGui.Parent = PlayerGui
+
+-- ОБЛАСТЬ СООБЩЕНИЙ
+local messagesFrame = Instance.new("ScrollingFrame")
+messagesFrame.Name = "MessagesFrame"
+messagesFrame.Size = UDim2.new(1, -16, 1, - (Settings.INPUT_HEIGHT + 60))
+messagesFrame.Position = UDim2.new(0, 8, 0, topBar.Size.Y.Offset + 8)
+messagesFrame.BackgroundTransparency = 1
+messagesFrame.BorderSizePixel = 0
+messagesFrame.ScrollBarThickness = IS_MOBILE and 8 or 6
+messagesFrame.ScrollBarImageColor3 = PURPLE.ACCENT
+messagesFrame.ScrollingEnabled = true
+messagesFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+messagesFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+messagesFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+messagesFrame.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+messagesFrame.Parent = chatFrame
+
+local messagesLayout = Instance.new("UIListLayout")
+messagesLayout.Padding = UDim.new(0, IS_MOBILE and 8 or 6)
+messagesLayout.SortOrder = Enum.SortOrder.LayoutOrder
+messagesLayout.Parent = messagesFrame
+
+-- ПОЛЕ ВВОДА
+local inputFrame = Instance.new("Frame")
+inputFrame.Name = "InputFrame"
+inputFrame.Size = UDim2.new(1, -16, 0, Settings.INPUT_HEIGHT)
+inputFrame.Position = UDim2.new(0, 8, 1, -Settings.INPUT_HEIGHT - 8)
+inputFrame.BackgroundColor3 = PURPLE.DARK
+inputFrame.BackgroundTransparency = 0.2
+inputFrame.BorderSizePixel = 0
+inputFrame.Parent = chatFrame
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 10)
+inputCorner.Parent = inputFrame
+
+local inputStroke = Instance.new("UIStroke")
+inputStroke.Color = PURPLE.ACCENT
+inputStroke.Thickness = 1.5
+inputStroke.Transparency = 0.3
+inputStroke.Parent = inputFrame
+
+local inputBox = Instance.new("TextBox")
+inputBox.Name = "ChatInput"
+inputBox.Size = UDim2.new(1, IS_MOBILE and -12 or 0, 1, 0)
+inputBox.BackgroundTransparency = 1
+inputBox.TextColor3 = PURPLE.TEXT
+inputBox.Text = ""
+inputBox.PlaceholderText = IS_MOBILE and "Нажмите чтобы писать..." or "Напишите сообщение... (Enter)"
+inputBox.PlaceholderColor3 = PURPLE.LIGHT
+inputBox.Font = Enum.Font.SourceSans
+inputBox.TextSize = Settings.FONT_SIZE
+inputBox.TextXAlignment = Enum.TextXAlignment.Left
+inputBox.TextYAlignment = Enum.TextYAlignment.Center
+inputBox.ClearTextOnFocus = false
+inputBox.MultiLine = false
+inputBox.TextWrapped = false
+inputBox.Parent = inputFrame
+
+-- Кнопка отправки для мобильных
+if IS_MOBILE then
+	local sendButton = Instance.new("TextButton")
+	sendButton.Name = "SendButton"
+	sendButton.Size = UDim2.new(0, 60, 0, 32)
+	sendButton.Position = UDim2.new(1, -65, 0.5, -16)
+	sendButton.BackgroundColor3 = PURPLE.MAIN
+	sendButton.BackgroundTransparency = 0.1
+	sendButton.Text = "💜"
+	sendButton.TextColor3 = PURPLE.LIGHT
+	sendButton.TextSize = 20
+	sendButton.Font = Enum.Font.SourceSansBold
+	sendButton.AutoButtonColor = false
+	
+	local sendCorner = Instance.new("UICorner")
+	sendCorner.CornerRadius = UDim.new(0, 8)
+	sendCorner.Parent = sendButton
+	
+	local sendStroke = Instance.new("UIStroke")
+	sendStroke.Color = PURPLE.ACCENT
+	sendStroke.Thickness = 1
+	sendStroke.Parent = sendButton
+	
+	sendButton.Parent = inputFrame
+	inputBox.Size = UDim2.new(1, -80, 1, 0)
+end
+
+-- ========== ФУНКЦИЯ ЗАКРЫТИЯ ЧАТА ==========
+
+local function CloseChat()
+	if not isChatActive then return end
+	isChatActive = false
+	
+	print("[ЧАТ] Закрытие чата...")
+	
+	-- Эффект исчезновения
+	for i = 1, 10 do
+		chatFrame.BackgroundTransparency = chatFrame.BackgroundTransparency + 0.1
+		topBar.BackgroundTransparency = topBar.BackgroundTransparency + 0.1
+		stroke.Transparency = stroke.Transparency + 0.1
+		shadow.ImageTransparency = shadow.ImageTransparency + 0.1
+		task.wait(0.03)
+	end
+	
+	-- Удаление всех объектов
+	screenGui:Destroy()
+	
+	-- Очистка всех соединений и остановка скрипта
+	print("[ЧАТ] Чат полностью закрыт")
+	print("[ЧАТ] Скрипт завершает работу")
+	
+	-- Завершаем скрипт
+	script:Destroy()
+end
+
+-- Подключаем кнопку закрытия
+closeButton.MouseButton1Click:Connect(CloseChat)
+
+-- Также закрываем по двойному тапу на телефоне
+if IS_MOBILE then
+	local lastTapTime = 0
+	topBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			local currentTime = tick()
+			if currentTime - lastTapTime < 0.3 then
+				-- Двойной тап
+				CloseChat()
+			end
+			lastTapTime = currentTime
+		end
+	end)
+end
+
+-- ========== ФУНКЦИИ ЧАТА ==========
+
+local function AddMessage(playerName, message, color)
+	if not isChatActive then return end
+	
+	if #message > 200 then
+		message = message:sub(1, 200) .. "..."
+	end
+	
+	table.insert(chatHistory, {
+		player = playerName,
+		message = message,
+		time = os.date("%H:%M"),
+		color = color or PURPLE.TEXT
+	})
+	
+	while #chatHistory > Settings.MAX_MESSAGES do
+		table.remove(chatHistory, 1)
+	end
+	
+	local msgFrame = Instance.new("Frame")
+	msgFrame.Size = UDim2.new(1, 0, 0, 0)
+	msgFrame.BackgroundTransparency = 1
+	msgFrame.AutomaticSize = Enum.AutomaticSize.Y
+	msgFrame.LayoutOrder = #chatHistory
+	
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 4)
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = msgFrame
+	
+	-- Время
+	local timeLabel = Instance.new("TextLabel")
+	timeLabel.Size = UDim2.new(0, IS_MOBILE and 36 or 40, 0, IS_MOBILE and 18 or 20)
+	timeLabel.BackgroundTransparency = 1
+	timeLabel.Text = "[" .. os.date("%H:%M") .. "]"
+	timeLabel.TextColor3 = PURPLE.ACCENT
+	timeLabel.TextSize = IS_MOBILE and 10 or 12
+	timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+	timeLabel.Font = Enum.Font.SourceSansSemibold
+	timeLabel.LayoutOrder = 1
+	timeLabel.Parent = msgFrame
+	
+	-- Имя игрока
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(0, 0, 0, IS_MOBILE and 18 or 20)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = playerName .. ": "
+	nameLabel.TextColor3 = color or PURPLE.TEXT
+	nameLabel.TextSize = IS_MOBILE and 12 or 14
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Font = Enum.Font.SourceSansSemibold
+	nameLabel.AutomaticSize = Enum.AutomaticSize.X
+	nameLabel.LayoutOrder = 2
+	nameLabel.Parent = msgFrame
+	
+	-- Текст сообщения
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.new(1, -(IS_MOBILE and 50 or 60), 0, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = message
+	textLabel.TextColor3 = PURPLE.LIGHT
+	textLabel.TextSize = IS_MOBILE and 12 or 14
+	textLabel.TextXAlignment = Enum.TextXAlignment.Left
+	textLabel.TextYAlignment = Enum.TextYAlignment.Top
+	textLabel.Font = Enum.Font.SourceSans
+	textLabel.TextWrapped = true
+	textLabel.AutomaticSize = Enum.AutomaticSize.Y
+	textLabel.LayoutOrder = 3
+	textLabel.Parent = msgFrame
+	
+	msgFrame.Parent = messagesFrame
+	
+	task.wait(0.05)
+	messagesFrame.CanvasPosition = Vector2.new(0, messagesFrame.AbsoluteCanvasSize.Y)
+	
+	lastActivity = tick()
+	chatFrame.BackgroundTransparency = 0.08
+	stroke.Transparency = 0.1
+end
+
+local function SendMessage()
+	if not isChatActive then return end
+	
+	local text = inputBox.Text:gsub("^%s*(.-)%s*$", "%1")
+	
+	if #text > 0 then
+		local playerColor = Color3.new(
+			math.random(100, 200)/255,
+			math.random(150, 255)/255,
+			math.random(180, 255)/255
+		)
+		AddMessage(Player.Name, text, playerColor)
+		inputBox.Text = ""
+	end
+	
+	if not IS_MOBILE then
+		inputBox:ReleaseFocus()
+	end
+end
+
+-- ========== СИСТЕМА ПЕРЕТАСКИВАНИЯ ==========
+
+local function StartDragging(input)
+	if not isChatActive then return end
+	
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+	   input.UserInputType == Enum.UserInputType.Touch then
+		
+		isDragging = true
+		dragStart = input.Position
+		chatStartPos = chatFrame.Position
+		
+		topBar.BackgroundTransparency = 0.2
+		stroke.Transparency = 0
+		lastActivity = tick()
+		
+		if IS_MOBILE then
+			UserInputService:SetMouseIcon("rbxassetid://6065821980")
+		end
+	end
+end
+
+local function ProcessDragging(input)
+	if not isChatActive then return end
+	
+	if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
+					  input.UserInputType == Enum.UserInputType.Touch) then
+		
+		local delta = input.Position - dragStart
+		local newPosition = UDim2.new(
+			chatStartPos.X.Scale,
+			chatStartPos.X.Offset + delta.X,
+			chatStartPos.Y.Scale,
+			chatStartPos.Y.Offset + delta.Y
+		)
+		
+		chatFrame.Position = ClampToScreen(newPosition)
+		lastActivity = tick()
+	end
+end
+
+local function StopDragging(input)
+	if not isChatActive then return end
+	
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+	   input.UserInputType == Enum.UserInputType.Touch then
+		
+		isDragging = false
+		topBar.BackgroundTransparency = 0
+		stroke.Transparency = 0.1
+		
+		if IS_MOBILE then
+			UserInputService:SetMouseIcon("")
+		end
+	end
+end
+
+-- Подключаем обработчики
+topBar.InputBegan:Connect(StartDragging)
+UserInputService.InputChanged:Connect(ProcessDragging)
+UserInputService.InputEnded:Connect(StopDragging)
+
+if IS_MOBILE then
+	chatFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			StartDragging(input)
+		end
+	end)
+end
+
+-- ========== УПРАВЛЕНИЕ ВВОДОМ ==========
+
+inputBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed and IS_DESKTOP then
+		SendMessage()
+	end
+end)
+
+if IS_MOBILE then
+	local sendButton = inputFrame:FindFirstChild("SendButton")
+	if sendButton then
+		sendButton.MouseButton1Click:Connect(SendMessage)
+		sendButton.MouseButton1Click:Connect(function()
+			inputBox:ReleaseFocus()
+		end)
+	end
+end
+
+if IS_DESKTOP then
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed or not isChatActive then return end
+		
+		if input.KeyCode == Enum.KeyCode.Return then
+			if inputBox:IsFocused() then
+				SendMessage()
+			else
+				inputBox:CaptureFocus()
+				lastActivity = tick()
+				chatFrame.BackgroundTransparency = 0.08
+			end
+			
+		elseif input.KeyCode == Enum.KeyCode.Slash then
+			inputBox:CaptureFocus()
+			lastActivity = tick()
+			chatFrame.BackgroundTransparency = 0.08
+			
+		elseif input.KeyCode == Enum.KeyCode.Escape then
+			if inputBox:IsFocused() then
+				inputBox:ReleaseFocus()
+				inputBox.Text = ""
+			end
+		end
+	end)
+end
+
+if IS_MOBILE then
+	inputBox.MouseButton1Click:Connect(function()
+		if not isChatActive then return end
+		inputBox:CaptureFocus()
+		lastActivity = tick()
+		chatFrame.BackgroundTransparency = 0.08
+	end)
+end
+
+-- ========== СИСТЕМА АВТОСКРЫТИЯ ==========
+
+task.spawn(function()
+	while isChatActive do
+		local currentTime = tick()
+		local inactiveTime = currentTime - lastActivity
+		
+		if inactiveTime > Settings.FADE_TIME then
+			local transparency = 0.08 + (inactiveTime - Settings.FADE_TIME) * 0.05
+			chatFrame.BackgroundTransparency = math.min(0.7, transparency)
+			stroke.Transparency = 0.5
+		else
+			chatFrame.BackgroundTransparency = 0.08
+			stroke.Transparency = 0.1
+		end
+		
+		task.wait(0.5)
+	end
+end)
+
+-- ========== ЗАГРУЗКА И ЗАПУСК ==========
+
+PlayerGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+	if not isChatActive then return end
+	chatFrame.Position = ClampToScreen(chatFrame.Position)
+end)
+
+-- Загрузка начальных сообщений
+task.spawn(function()
+	task.wait(1)
+	if not isChatActive then return end
+	
+	AddMessage("💜 СИСТЕМА", "Фиолетовый Global Chat загружен!", PURPLE.ACCENT)
+	task.wait(1)
+	
+	if IS_MOBILE then
+		AddMessage("💜 СИСТЕМА", "❌ - закрыть чат", PURPLE.CLOSE)
+		task.wait(1)
+		AddMessage("💜 СИСТЕМА", "Тащите пальцем за верхнюю панель", PURPLE.LIGHT)
+	else
+		AddMessage("💜 СИСТЕМА", "❌ - закрыть чат", PURPLE.CLOSE)
+		task.wait(1)
+		AddMessage("💜 СИСТЕМА", "Тащите мышью за верхнюю панель", PURPLE.LIGHT)
+	end
+	
+	task.wait(1)
+	AddMessage("💜 СИСТЕМА", "Сообщения сохраняются в истории", PURPLE.ACCENT)
+end)
+
+-- Информация в консоль
+print("===========================================")
+print("💜 ФИОЛЕТОВЫЙ GLOBAL CHAT АКТИВИРОВАН")
+print("Устройство: " .. (IS_MOBILE and "📱 ТЕЛЕФОН" or "🖥️ ПК"))
+print("❌ Нажмите крестик для закрытия")
+print("by pososite_razrabi")
+print("===========================================")
+
+-- Окончательная инициализация
+chatFrame.Visible = true	TEXT = Color3.fromRGB(230, 230, 250),    -- Лавандово-белый
 	SHADOW = Color3.fromRGB(48, 25, 52),     -- Тень
 	GLOW = Color3.fromRGB(200, 150, 255)     -- Свечение
 }
