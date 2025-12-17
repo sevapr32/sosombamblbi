@@ -1,40 +1,386 @@
--- ============================================
--- АВТОНОМНЫЙ ФИОЛЕТОВЫЙ ЧАТ ДЛЯ ROBLOX
--- GUI создает и рисует себя сам
--- Вставьте в LocalScript в StarterGui
--- Автор: pososite_razrabi
--- ============================================
-
 --[[
-СКРИПТ РАБОТАЕТ ПОЛНОСТЬЮ АВТОНОМНО:
-1. Сам создает все объекты GUI
-2. Сам позиционирует себя
-3. Сам обрабатывает все события
-4. Сам удаляет себя при закрытии
+███████╗██╗███╗   ███╗███████╗██╗      ██████╗ ██████╗ 
+██╔════╝██║████╗ ████║██╔════╝██║     ██╔═══██╗██╔══██╗
+█████╗  ▚█║██╔████╔██║█████╗  ██║     ██║   ██║██████╔╝
+██╔══╝  ██║██║╚██╔╝██║██╔══╝  ██║     ██║   ██║██╔═══╝ 
+███████╗██║██║ ╚═╝ ██║███████╗███████╗╚██████╔╝██║     
+╚══════╝╚═╝╚═╝     ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚═╝     
+by pososite_razrabi
 ]]
 
--- Ожидаем загрузки игрока
-local player = game.Players.LocalPlayer
-while not player do
-	game:GetService("RunService").Heartbeat:Wait()
-	player = game.Players.LocalPlayer
-end
-
--- Ждем PlayerGui
+-- ЖДЕМ ИГРОКА
+local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Создаем главный GUI объект
-local mainScreenGui = Instance.new("ScreenGui")
-mainScreenGui.Name = "AutoPurpleChat"
-mainScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-mainScreenGui.ResetOnSpawn = false
-mainScreenGui.Parent = playerGui
+-- ЦВЕТА ФИОЛЕТОВОГО ДИЗАЙНА
+local COLORS = {
+	DARK = Color3.fromRGB(40, 0, 80),
+	MAIN = Color3.fromRGB(138, 43, 226),
+	LIGHT = Color3.fromRGB(186, 85, 211),
+	TEXT = Color3.fromRGB(230, 230, 250),
+	CLOSE = Color3.fromRGB(255, 80, 80)
+}
 
-print("✅ Создан главный ScreenGui")
+-- СОЗДАЕМ ГЛАВНОЕ ОКНО
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoPurpleChat"
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
 
--- Массив для истории сообщений
+-- СОЗДАЕМ ОСНОВНОЙ ФРЕЙМ ЧАТА
+local chatFrame = Instance.new("Frame")
+chatFrame.Name = "ChatFrame"
+chatFrame.Size = UDim2.new(0, 360, 0, 420)
+chatFrame.Position = UDim2.new(0.5, -180, 0.5, -210)
+chatFrame.BackgroundColor3 = COLORS.DARK
+chatFrame.BackgroundTransparency = 0.1
+chatFrame.BorderSizePixel = 0
+chatFrame.ClipsDescendants = true
+
+local chatCorner = Instance.new("UICorner")
+chatCorner.CornerRadius = UDim.new(0, 12)
+chatCorner.Parent = chatFrame
+
+local chatStroke = Instance.new("UIStroke")
+chatStroke.Color = COLORS.MAIN
+chatStroke.Thickness = 2
+chatStroke.Parent = chatFrame
+
+chatFrame.Parent = screenGui
+
+-- СОЗДАЕМ ВЕРХНЮЮ ПАНЕЛЬ ДЛЯ ПЕРЕТАСКИВАНИЯ
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 45)
+topBar.BackgroundColor3 = COLORS.MAIN
+topBar.BackgroundTransparency = 0
+topBar.BorderSizePixel = 0
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 12)
+topCorner.Parent = topBar
+
+-- НАДПИСЬ "GLOBAL CHAT by pososite_razrabi"
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "Title"
+titleLabel.Size = UDim2.new(1, -50, 1, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "GLOBAL CHAT\nby pososite_razrabi"
+titleLabel.TextColor3 = COLORS.TEXT
+titleLabel.TextSize = 16
+titleLabel.Font = Enum.Font.SourceSansSemibold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+titleLabel.TextWrapped = true
+titleLabel.Parent = topBar
+
+-- КНОПКА ЗАКРЫТИЯ В ПРАВОМ ВЕРХНЕМ УГЛУ
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 32, 0, 32)
+closeButton.Position = UDim2.new(1, -37, 0.5, -16)
+closeButton.BackgroundColor3 = COLORS.CLOSE
+closeButton.BackgroundTransparency = 0.1
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextSize = 18
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.AutoButtonColor = false
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeButton
+
+closeButton.Parent = topBar
+topBar.Parent = chatFrame
+
+-- ОБЛАСТЬ ДЛЯ СООБЩЕНИЙ
+local messagesFrame = Instance.new("ScrollingFrame")
+messagesFrame.Name = "MessagesFrame"
+messagesFrame.Size = UDim2.new(1, -10, 1, -110)
+messagesFrame.Position = UDim2.new(0, 5, 0, 50)
+messagesFrame.BackgroundTransparency = 1
+messagesFrame.BorderSizePixel = 0
+messagesFrame.ScrollBarThickness = 6
+messagesFrame.ScrollBarImageColor3 = COLORS.LIGHT
+messagesFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+messagesFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+messagesFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+messagesFrame.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+
+local messagesLayout = Instance.new("UIListLayout")
+messagesLayout.Padding = UDim.new(0, 8)
+messagesLayout.SortOrder = Enum.SortOrder.LayoutOrder
+messagesLayout.Parent = messagesFrame
+
+messagesFrame.Parent = chatFrame
+
+-- ПОЛЕ ВВОДА
+local inputFrame = Instance.new("Frame")
+inputFrame.Name = "InputFrame"
+inputFrame.Size = UDim2.new(1, -10, 0, 45)
+inputFrame.Position = UDim2.new(0, 5, 1, -50)
+inputFrame.BackgroundColor3 = COLORS.DARK
+inputFrame.BackgroundTransparency = 0.2
+inputFrame.BorderSizePixel = 0
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 10)
+inputCorner.Parent = inputFrame
+
+local inputBox = Instance.new("TextBox")
+inputBox.Name = "MessageInput"
+inputBox.Size = UDim2.new(1, 0, 1, 0)
+inputBox.BackgroundTransparency = 1
+inputBox.TextColor3 = COLORS.TEXT
+inputBox.Text = ""
+inputBox.PlaceholderText = "Введите сообщение... (Enter для отправки)"
+inputBox.PlaceholderColor3 = COLORS.LIGHT
+inputBox.Font = Enum.Font.SourceSans
+inputBox.TextSize = 16
+inputBox.TextXAlignment = Enum.TextXAlignment.Left
+inputBox.TextYAlignment = Enum.TextYAlignment.Center
+inputBox.ClearTextOnFocus = false
+inputBox.Parent = inputFrame
+
+inputFrame.Parent = chatFrame
+
+-- ТЕПЕРЬ ВСЕ СОЗДАНО, НАЧИНАЕМ РАБОТУ
+
 local messageHistory = {}
+local lastActivity = tick()
+local isActive = true
+local isDragging = false
+local dragStart
+local frameStartPos
 
+-- ФУНКЦИЯ ДОБАВЛЕНИЯ СООБЩЕНИЯ
+local function AddMessage(sender, text, color)
+	if not isActive then return end
+	
+	local messageContainer = Instance.new("Frame")
+	messageContainer.Name = "MessageContainer"
+	messageContainer.Size = UDim2.new(1, 0, 0, 0)
+	messageContainer.BackgroundTransparency = 1
+	messageContainer.AutomaticSize = Enum.AutomaticSize.Y
+	messageContainer.LayoutOrder = #messageHistory + 1
+	
+	local horizontalLayout = Instance.new("UIListLayout")
+	horizontalLayout.Padding = UDim.new(0, 4)
+	horizontalLayout.FillDirection = Enum.FillDirection.Horizontal
+	horizontalLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	horizontalLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	horizontalLayout.Parent = messageContainer
+	
+	local timeLabel = Instance.new("TextLabel")
+	timeLabel.Size = UDim2.new(0, 45, 0, 20)
+	timeLabel.BackgroundTransparency = 1
+	timeLabel.Text = "[" .. os.date("%H:%M") .. "]"
+	timeLabel.TextColor3 = COLORS.LIGHT
+	timeLabel.TextSize = 12
+	timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+	timeLabel.Font = Enum.Font.SourceSansSemibold
+	timeLabel.LayoutOrder = 1
+	timeLabel.Parent = messageContainer
+	
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(0, 0, 0, 20)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = sender .. ": "
+	nameLabel.TextColor3 = color or COLORS.TEXT
+	nameLabel.TextSize = 14
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Font = Enum.Font.SourceSansSemibold
+	nameLabel.AutomaticSize = Enum.AutomaticSize.X
+	nameLabel.LayoutOrder = 2
+	nameLabel.Parent = messageContainer
+	
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.new(1, -70, 0, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = text
+	textLabel.TextColor3 = COLORS.TEXT
+	textLabel.TextSize = 14
+	textLabel.TextXAlignment = Enum.TextXAlignment.Left
+	textLabel.TextYAlignment = Enum.TextYAlignment.Top
+	textLabel.Font = Enum.Font.SourceSans
+	textLabel.TextWrapped = true
+	textLabel.AutomaticSize = Enum.AutomaticSize.Y
+	textLabel.LayoutOrder = 3
+	textLabel.Parent = messageContainer
+	
+	messageContainer.Parent = messagesFrame
+	
+	table.insert(messageHistory, {
+		sender = sender,
+		text = text,
+		time = os.date("%H:%M")
+	})
+	
+	task.wait()
+	messagesFrame.CanvasPosition = Vector2.new(0, messagesFrame.AbsoluteCanvasSize.Y)
+	
+	lastActivity = tick()
+end
+
+-- ФУНКЦИЯ ОТПРАВКИ СООБЩЕНИЯ
+local function SendMessage()
+	if not isActive then return end
+	
+	local text = inputBox.Text:gsub("^%s*(.-)%s*$", "%1")
+	
+	if #text > 0 then
+		AddMessage(player.Name, text, Color3.fromRGB(
+			math.random(100, 200),
+			math.random(150, 255),
+			math.random(150, 255)
+		))
+		inputBox.Text = ""
+	end
+	
+	inputBox:ReleaseFocus()
+end
+
+-- ФУНКЦИЯ ЗАКРЫТИЯ ЧАТА
+local function CloseChat()
+	if not isActive then return end
+	
+	isActive = false
+	
+	for i = 1, 15 do
+		chatFrame.BackgroundTransparency = i/15
+		topBar.BackgroundTransparency = i/15
+		chatStroke.Transparency = i/15
+		task.wait(0.03)
+	end
+	
+	screenGui:Destroy()
+end
+
+-- ПОДКЛЮЧАЕМ СОБЫТИЯ
+
+-- ПЕРЕТАСКИВАНИЕ
+topBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+	   input.UserInputType == Enum.UserInputType.Touch then
+		
+		isDragging = true
+		dragStart = input.Position
+		frameStartPos = chatFrame.Position
+		lastActivity = tick()
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
+					  input.UserInputType == Enum.UserInputType.Touch) then
+		
+		local delta = input.Position - dragStart
+		chatFrame.Position = UDim2.new(
+			frameStartPos.X.Scale,
+			frameStartPos.X.Offset + delta.X,
+			frameStartPos.Y.Scale,
+			frameStartPos.Y.Offset + delta.Y
+		)
+		lastActivity = tick()
+	end
+end)
+
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+	   input.UserInputType == Enum.UserInputType.Touch then
+		
+		isDragging = false
+	end
+end)
+
+-- ОТПРАВКА СООБЩЕНИЙ
+inputBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		SendMessage()
+	end
+end)
+
+-- ГОРЯЧИЕ КЛАВИШИ
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+	if processed or not isActive then return end
+	
+	if input.KeyCode == Enum.KeyCode.Return then
+		if inputBox:IsFocused() then
+			SendMessage()
+		else
+			inputBox:CaptureFocus()
+			lastActivity = tick()
+		end
+		
+	elseif input.KeyCode == Enum.KeyCode.Slash then
+		inputBox:CaptureFocus()
+		lastActivity = tick()
+		
+	elseif input.KeyCode == Enum.KeyCode.Escape then
+		if inputBox:IsFocused() then
+			inputBox:ReleaseFocus()
+			inputBox.Text = ""
+		end
+	end
+end)
+
+-- КНОПКА ЗАКРЫТИЯ
+closeButton.MouseButton1Click:Connect(CloseChat)
+
+-- ЭФФЕКТЫ КНОПКИ ЗАКРЫТИЯ
+closeButton.MouseEnter:Connect(function()
+	if isActive then
+		closeButton.BackgroundTransparency = 0
+	end
+end)
+
+closeButton.MouseLeave:Connect(function()
+	if isActive then
+		closeButton.BackgroundTransparency = 0.1
+	end
+end)
+
+-- СИСТЕМА АВТОСКРЫТИЯ
+task.spawn(function()
+	while isActive do
+		local currentTime = tick()
+		local inactiveTime = currentTime - lastActivity
+		
+		if inactiveTime > 15 then
+			local transparency = 0.1 + (inactiveTime - 15) * 0.05
+			chatFrame.BackgroundTransparency = math.min(0.8, transparency)
+		else
+			chatFrame.BackgroundTransparency = 0.1
+		end
+		
+		task.wait(0.5)
+	end
+end)
+
+-- ДОБАВЛЯЕМ ПРИВЕТСТВЕННЫЕ СООБЩЕНИЯ
+task.wait(1)
+AddMessage("💜 СИСТЕМА", "Автономный чат создан!", COLORS.LIGHT)
+task.wait(1)
+AddMessage("💜 СИСТЕМА", "GUI нарисовал себя сам!", COLORS.MAIN)
+task.wait(1)
+AddMessage("💜 СИСТЕМА", "Тащите за верхнюю панель", COLORS.TEXT)
+task.wait(1)
+AddMessage("💜 СИСТЕМА", "X - закрыть чат", COLORS.CLOSE)
+task.wait(1)
+AddMessage("💜 СИСТЕМА", "Готов к работе!", COLORS.LIGHT)
+
+-- ВСЁ ГОТОВО!
+print("========================================")
+print("💜 АВТОНОМНЫЙ ФИОЛЕТОВЫЙ ЧАТ ЗАПУЩЕН")
+print("✅ GUI создал и нарисовал себя сам")
+print("✅ Работает полностью автономно")
+print("✅ by pososite_razrabi")
+print("========================================")
+
+-- ЧАТ РАБОТАЕТ САМ ОТ СЕБЯ!
 -- Переменные для работы
 local isDragging = false
 local dragStartPos
