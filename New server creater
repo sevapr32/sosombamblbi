@@ -1,0 +1,99 @@
+-- ServerScript в ServerScriptService
+-- Этот скрипт будет создавать новый сервер при запуске и перемещать всех игроков
+
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+-- Функция создания нового публичного сервера
+local function createPublicServer()
+    local placeId = game.PlaceId
+    local currentPlayers = Players:GetPlayers()
+    
+    if #currentPlayers == 0 then
+        warn("Нет игроков для телепортации")
+        return
+    end
+    
+    -- Создаем опции для телепортации
+    local teleportOptions = Instance.new("TeleportOptions")
+    
+    -- Для публичного сервера не нужен приватный код
+    teleportOptions.ShouldReserveServer = false
+    
+    -- Можно добавить дополнительные настройки
+    teleportOptions:SetTeleportData({
+        serverType = "public",
+        creator = currentPlayers[1].Name,
+        timestamp = os.time()
+    })
+    
+    -- Сообщаем игрокам о телепортации
+    for _, player in ipairs(currentPlayers) do
+        local message = Instance.new("Message")
+        message.Text = "Создаем новый сервер..."
+        message.Parent = player:FindFirstChildOfClass("PlayerGui")
+        
+        game:GetService("Debris"):AddItem(message, 3)
+    end
+    
+    -- Пытаемся телепортировать всех игроков
+    local success, result = pcall(function()
+        return TeleportService:TeleportAsync(placeId, currentPlayers, teleportOptions)
+    end)
+    
+    if not success then
+        warn("Ошибка телепортации: " .. tostring(result))
+        -- Если телепортация не удалась, отправляем сообщение
+        for _, player in ipairs(currentPlayers) do
+            local message = Instance.new("Message")
+            message.Text = "Не удалось создать сервер. Попробуйте снова."
+            message.Parent = player:FindFirstChildOfClass("PlayerGui")
+            game:GetService("Debris"):AddItem(message, 5)
+        end
+    end
+end
+
+-- Функция телепортации одиночного игрока
+local function teleportSinglePlayer(player)
+    local placeId = game.PlaceId
+    
+    local teleportOptions = Instance.new("TeleportOptions")
+    teleportOptions.ShouldReserveServer = false
+    
+    local success, result = pcall(function()
+        TeleportService:TeleportAsync(placeId, {player}, teleportOptions)
+    end)
+    
+    if not success then
+        warn("Ошибка телепортации игрока " .. player.Name .. ": " .. tostring(result))
+    end
+end
+
+-- Автоматически создаем новый сервер при старте игры
+game.Players.PlayerAdded:Connect(function(player)
+    -- Ждем немного перед телепортацией
+    wait(2)
+    
+    -- Если игрок один или мы хотим телепортировать каждого нового игрока
+    if #Players:GetPlayers() == 1 then
+        teleportSinglePlayer(player)
+    end
+end)
+
+-- Можно также добавить команду в чат для создания сервера
+game.Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        if string.lower(message) == "/новыйсервер" or string.lower(message) == "/newserver" then
+            createPublicServer()
+        end
+    end)
+end)
+
+-- Если нужно сразу создать сервер при запуске (если есть игроки)
+wait(3) -- Ждем загрузки игроков
+
+if #Players:GetPlayers() > 0 then
+    -- Создаем новый сервер для всех текущих игроков
+    createPublicServer()
+end
