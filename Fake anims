@@ -1,1 +1,463 @@
+-- ==============================================
+-- САМОРИСУЮЩИЙСЯ ГУИ ДЛЯ АНИМАЦИЙ
+-- Скрипт рисует себя полностью самостоятельно
+-- ==============================================
 
+-- Основные сервисы
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Получаем игрока и его GUI
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Таблица для хранения всех созданных элементов
+local elements = {}
+local animations = {}
+
+-- Функция создания элемента с анимацией появления
+local function createElement(className, properties, parent)
+    local element = Instance.new(className)
+    
+    -- Применяем свойства
+    for property, value in pairs(properties) do
+        if property ~= "Parent" then
+            element[property] = value
+        end
+    end
+    
+    -- Добавляем анимацию появления
+    if className == "Frame" or className == "TextButton" or className == "TextBox" then
+        element.BackgroundTransparency = 1
+        animations[element] = {
+            transparency = 1,
+            target = 0
+        }
+    elseif className == "TextLabel" or className == "TextButton" then
+        element.TextTransparency = 1
+        animations[element] = {
+            textTransparency = 1,
+            target = 0
+        }
+    end
+    
+    -- Устанавливаем родителя
+    if parent then
+        element.Parent = parent
+    end
+    
+    table.insert(elements, element)
+    return element
+end
+
+-- Функция плавного появления
+local function fadeIn(element, duration)
+    if element:IsA("Frame") or element:IsA("TextButton") or element:IsA("TextBox") then
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(element, tweenInfo, {BackgroundTransparency = 0})
+        tween:Play()
+    end
+    
+    if element:IsA("TextLabel") or element:IsA("TextButton") or element:IsA("TextBox") then
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(element, tweenInfo, {TextTransparency = 0})
+        tween:Play()
+    end
+end
+
+-- Основная функция рисования GUI
+local function drawSelf()
+    print("🎨 Начинаю рисовать себя...")
+    
+    -- 1. Создаем основной ScreenGui
+    local screenGui = createElement("ScreenGui", {
+        Name = "AutoDrawnAnimationPlayer",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    }, playerGui)
+    
+    -- 2. Создаем основной контейнер
+    local mainContainer = createElement("Frame", {
+        Name = "MainContainer",
+        Size = UDim2.new(0, 0, 0, 0), -- Начинаем с нуля
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 40),
+        BorderSizePixel = 0,
+        ClipsDescendants = true
+    }, screenGui)
+    
+    -- 3. Анимируем появление контейнера (растягивание)
+    task.wait(0.5)
+    local sizeTween = TweenService:Create(mainContainer, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 450, 0, 350)
+    })
+    sizeTween:Play()
+    
+    task.wait(0.3)
+    
+    -- 4. Добавляем скругленные углы
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 15),
+        Name = "MainCorner"
+    }, mainContainer)
+    
+    -- 5. Добавляем обводку
+    createElement("UIStroke", {
+        Color = Color3.fromRGB(70, 130, 200),
+        Thickness = 3,
+        Transparency = 0.7,
+        Name = "MainStroke"
+    }, mainContainer)
+    
+    -- 6. Создаем верхнюю панель
+    local topBar = createElement("Frame", {
+        Name = "TopBar",
+        Size = UDim2.new(1, 0, 0, 60),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 30),
+        BorderSizePixel = 0
+    }, mainContainer)
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 15),
+        Name = "TopBarCorner"
+    }, topBar)
+    
+    -- 7. Заголовок
+    local title = createElement("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, -40, 1, 0),
+        Position = UDim2.new(0, 20, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "🖌️ САМОРИСУЮЩИЙСЯ ГУИ",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextSize = 24,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, topBar)
+    
+    fadeIn(title, 0.5)
+    
+    -- 8. Подзаголовок
+    local subtitle = createElement("TextLabel", {
+        Name = "Subtitle",
+        Size = UDim2.new(1, -40, 0, 20),
+        Position = UDim2.new(0, 20, 0, 65),
+        BackgroundTransparency = 1,
+        Text = "Этот интерфейс нарисовал себя самостоятельно!",
+        TextColor3 = Color3.fromRGB(180, 200, 255),
+        TextSize = 14,
+        Font = Enum.Font.Gotham,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, mainContainer)
+    
+    task.wait(0.2)
+    fadeIn(subtitle, 0.5)
+    
+    -- 9. Иконка процесса рисования
+    local drawingIcon = createElement("TextLabel", {
+        Name = "DrawingIcon",
+        Size = UDim2.new(0, 40, 0, 40),
+        Position = UDim2.new(1, -50, 0, 10),
+        BackgroundTransparency = 1,
+        Text = "🎨",
+        TextColor3 = Color3.fromRGB(255, 200, 100),
+        TextSize = 30,
+        Font = Enum.Font.GothamBold
+    }, topBar)
+    
+    -- Анимация иконки
+    task.spawn(function()
+        while drawingIcon and drawingIcon.Parent do
+            drawingIcon.Rotation = 0
+            local rotateTween = TweenService:Create(drawingIcon, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                Rotation = 360
+            })
+            rotateTween:Play()
+            task.wait(1.2)
+        end
+    end)
+    
+    task.wait(0.5)
+    
+    -- 10. Контейнер для ввода ID
+    local inputContainer = createElement("Frame", {
+        Name = "InputContainer",
+        Size = UDim2.new(1, -40, 0, 60),
+        Position = UDim2.new(0, 20, 0, 100),
+        BackgroundColor3 = Color3.fromRGB(40, 40, 55),
+        BorderSizePixel = 0
+    }, mainContainer)
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 10),
+        Name = "InputCorner"
+    }, inputContainer)
+    
+    createElement("UIStroke", {
+        Color = Color3.fromRGB(100, 150, 255),
+        Thickness = 2,
+        Name = "InputStroke"
+    }, inputContainer)
+    
+    task.wait(0.3)
+    fadeIn(inputContainer, 0.5)
+    
+    -- 11. Метка для поля ввода
+    local inputLabel = createElement("TextLabel", {
+        Name = "InputLabel",
+        Size = UDim2.new(0, 120, 1, 0),
+        Position = UDim2.new(0, 15, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "🆔 ID Анимации:",
+        TextColor3 = Color3.fromRGB(200, 220, 255),
+        TextSize = 16,
+        Font = Enum.Font.GothamMedium,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, inputContainer)
+    
+    fadeIn(inputLabel, 0.5)
+    
+    -- 12. Поле для ввода ID
+    local idBox = createElement("TextBox", {
+        Name = "IDBox",
+        Size = UDim2.new(1, -150, 0.7, 0),
+        Position = UDim2.new(0, 130, 0.15, 0),
+        BackgroundColor3 = Color3.fromRGB(50, 50, 70),
+        BorderSizePixel = 0,
+        Text = "",
+        PlaceholderText = "Пример: 123456789",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextSize = 18,
+        Font = Enum.Font.Gotham,
+        ClearTextOnFocus = false
+    }, inputContainer)
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Name = "TextBoxCorner"
+    }, idBox)
+    
+    task.wait(0.2)
+    fadeIn(idBox, 0.5)
+    
+    -- 13. Индикатор ввода
+    local inputIndicator = createElement("Frame", {
+        Name = "InputIndicator",
+        Size = UDim2.new(0, 2, 0, 0),
+        Position = UDim2.new(0, 130, 1, -2),
+        BackgroundColor3 = Color3.fromRGB(100, 150, 255),
+        BorderSizePixel = 0
+    }, inputContainer)
+    
+    -- Анимация индикатора
+    task.spawn(function()
+        while inputIndicator and inputIndicator.Parent do
+            local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            local tween1 = TweenService:Create(inputIndicator, tweenInfo, {
+                Size = UDim2.new(1, -150, 0, 2)
+            })
+            local tween2 = TweenService:Create(inputIndicator, tweenInfo, {
+                Size = UDim2.new(0, 2, 0, 2)
+            })
+            
+            tween1:Play()
+            task.wait(0.5)
+            tween2:Play()
+            task.wait(0.5)
+        end
+    end)
+    
+    task.wait(0.5)
+    
+    -- 14. Кнопка воспроизведения
+    local playButton = createElement("TextButton", {
+        Name = "PlayButton",
+        Size = UDim2.new(1, -40, 0, 55),
+        Position = UDim2.new(0, 20, 0, 180),
+        BackgroundColor3 = Color3.fromRGB(70, 130, 200),
+        BorderSizePixel = 0,
+        Text = "",
+        AutoButtonColor = true,
+        TextSize = 0
+    }, mainContainer)
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 12),
+        Name = "ButtonCorner"
+    }, playButton)
+    
+    createElement("UIStroke", {
+        Color = Color3.fromRGB(255, 255, 255),
+        Thickness = 2,
+        Transparency = 0.5,
+        Name = "ButtonStroke"
+    }, playButton)
+    
+    -- Текст кнопки
+    local buttonText = createElement("TextLabel", {
+        Name = "ButtonText",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "▶ ВОСПРОИЗВЕСТИ АНИМАЦИЮ",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextSize = 20,
+        Font = Enum.Font.GothamBold
+    }, playButton)
+    
+    -- Иконка кнопки
+    local buttonIcon = createElement("TextLabel", {
+        Name = "ButtonIcon",
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(0, 15, 0.5, -15),
+        BackgroundTransparency = 1,
+        Text = "🎭",
+        TextColor3 = Color3.fromRGB(255, 255, 200),
+        TextSize = 22
+    }, playButton)
+    
+    task.wait(0.3)
+    fadeIn(playButton, 0.5)
+    
+    -- 15. Статусная панель
+    local statusBar = createElement("Frame", {
+        Name = "StatusBar",
+        Size = UDim2.new(1, -40, 0, 40),
+        Position = UDim2.new(0, 20, 0, 250),
+        BackgroundColor3 = Color3.fromRGB(40, 40, 55),
+        BorderSizePixel = 0
+    }, mainContainer)
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 10),
+        Name = "StatusCorner"
+    }, statusBar)
+    
+    -- Текст статуса
+    local statusText = createElement("TextLabel", {
+        Name = "StatusText",
+        Size = UDim2.new(1, -20, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "✅ Готов к работе! Введите ID анимации",
+        TextColor3 = Color3.fromRGB(180, 255, 180),
+        TextSize = 16,
+        Font = Enum.Font.GothamMedium,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, statusBar)
+    
+    task.wait(0.2)
+    fadeIn(statusBar, 0.5)
+    
+    -- 16. Индикатор процесса
+    local progressBar = createElement("Frame", {
+        Name = "ProgressBar",
+        Size = UDim2.new(0, 0, 0, 4),
+        Position = UDim2.new(0, 0, 1, -4),
+        BackgroundColor3 = Color3.fromRGB(100, 255, 100),
+        BorderSizePixel = 0,
+        Visible = false
+    }, mainContainer)
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 2),
+        Name = "ProgressCorner"
+    }, progressBar)
+    
+    -- 17. Кнопка закрытия
+    local closeButton = createElement("TextButton", {
+        Name = "CloseButton",
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(1, -40, 0, 15),
+        BackgroundColor3 = Color3.fromRGB(255, 80, 80),
+        BorderSizePixel = 0,
+        Text = "×",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextSize = 20,
+        Font = Enum.Font.GothamBold
+    }, topBar)
+    
+    createElement("UICorner", {
+        CornerRadius = UDim.new(0, 15),
+        Name = "CloseCorner"
+    }, closeButton)
+    
+    -- 18. Функциональность кнопки воспроизведения
+    playButton.MouseButton1Click:Connect(function()
+        local animationId = idBox.Text:gsub("%s+", "")
+        
+        if animationId == "" or not tonumber(animationId) then
+            -- Анимация ошибки
+            local originalColor = playButton.BackgroundColor3
+            local errorTween = TweenService:Create(playButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+            })
+            errorTween:Play()
+            
+            statusText.Text = "❌ Ошибка: введите корректный ID анимации"
+            statusText.TextColor3 = Color3.fromRGB(255, 150, 150)
+            
+            task.wait(0.5)
+            errorTween = TweenService:Create(playButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                BackgroundColor3 = originalColor
+            })
+            errorTween:Play()
+            
+            task.wait(2)
+            statusText.Text = "✅ Готов к работе! Введите ID анимации"
+            statusText.TextColor3 = Color3.fromRGB(180, 255, 180)
+        else
+            -- Анимация успеха
+            statusText.Text = "⏳ Загружаю анимацию ID: " .. animationId
+            statusText.TextColor3 = Color3.fromRGB(255, 255, 150)
+            
+            progressBar.Visible = true
+            local progressTween = TweenService:Create(progressBar, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(1, 0, 0, 4)
+            })
+            progressTween:Play()
+            
+            -- Симуляция загрузки анимации
+            task.wait(1)
+            
+            progressBar.Visible = false
+            statusText.Text = "✅ Анимация ID:" .. animationId .. " воспроизведена!"
+            statusText.TextColor3 = Color3.fromRGB(180, 255, 180)
+            
+            -- Сброс прогресс-бара
+            progressBar.Size = UDim2.new(0, 0, 0, 4)
+            
+            -- Здесь можно добавить реальное воспроизведение анимации
+            print("📢 Воспроизведение анимации с ID:", animationId)
+        end
+    end)
+    
+    -- 19. Функциональность кнопки закрытия
+    closeButton.MouseButton1Click:Connect(function()
+        -- Анимация закрытия
+        local closeTween = TweenService:Create(mainContainer, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0)
+        })
+        closeTween:Play()
+        
+        task.wait(0.5)
+        screenGui:Destroy()
+    end)
+    
+    -- 20. Финальное сообщение
+    task.wait(0.5)
+    statusText.Text = "✨ Гуи успешно нарисовал себя! Введите ID анимации"
+    
+    print("✅ Гуи полностью нарисовал себя!")
+end
+
+-- Запускаем процесс рисования
+task.wait(1) -- Ждем загрузку игры
+drawSelf()
+
+print("🚀 Самописный Гуи запущен и работает!")
